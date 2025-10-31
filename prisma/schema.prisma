@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model SugarSack {
+  id          String   @id @default(cuid())
+  sackNumber  String   @unique
+  weight      Float
+  status      SackStatus @default(AVAILABLE)
+  location    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String
+  updatedBy   String
+
+  @@map("sugar_sacks")
+}
+
+model SackCounter {
+  id          String   @id @default(cuid())
+  sackNumber  String
+  countedAt   DateTime @default(now())
+  countedBy   String
+  location    String?
+  notes       String?
+
+  @@map("sack_counters")
+}
+
+enum SackStatus {
+  AVAILABLE
+  IN_USE
+  DAMAGED
+  DISPOSED
+}

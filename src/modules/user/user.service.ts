@@ -1,0 +1,129 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { DatabaseService } from '../../database/database.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt';
+
+@Injectable()
+export class UserService {
+  constructor(private database: DatabaseService) {}
+
+  async create(createUserDto: CreateUserDto) {
+    const { email, password, name } = createUserDto;
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await this.database.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+      },
+    });
+
+    // Remove password from response
+    const { password: _, ...result } = user;
+    return result;
+  }
+
+  async findAll() {
+    const users = await this.database.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    return users;
+  }
+
+  async findOne(id: string) {
+    const user = await this.database.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return user;
+  }
+
+  async findByEmail(email: string) {
+    return this.database.user.findUnique({
+      where: { email },
+    });
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const user = await this.database.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    const updateData: any = { ...updateUserDto };
+
+    // If password is being updated, hash it
+    if (updateUserDto.password) {
+      updateData.password = await bcrypt.hash(updateUserDto.password, 12);
+    }
+
+    const updatedUser = await this.database.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updatedUser;
+  }
+
+  async remove(id: string) {
+    const user = await this.database.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    await this.database.user.delete({
+      where: { id },
+    });
+
+    return { message: 'User deleted successfully' };
+  }
+
+  async validateUser(email: string, password: string) {
+    const user = await this.findByEmail(email);
+    if (!user) {
+      return null;
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    const { password: _, ...result } = user;
+    return result;
+  }
+}

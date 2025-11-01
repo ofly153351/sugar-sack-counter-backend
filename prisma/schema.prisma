@@ -10,46 +10,148 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  users       User[]
+
+  @@map("roles")
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String   @id @default(uuid())
+  roleId    String   @map("role_id")
+  username  String   @unique
   password  String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  role      Role     @relation(fields: [roleId], references: [id])
+  profile   UserProfile?
 
   @@map("users")
 }
 
-model SugarSack {
-  id          String   @id @default(cuid())
-  sackNumber  String   @unique
-  weight      Float
-  status      SackStatus @default(AVAILABLE)
-  location    String?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String
-  updatedBy   String
+model UserProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  title        String
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  phone        String?
+  position     String?
+  employeeCode String?  @unique @map("employee_code")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("sugar_sacks")
+  @@map("user_profiles")
 }
 
-model SackCounter {
-  id          String   @id @default(cuid())
-  sackNumber  String
-  countedAt   DateTime @default(now())
-  countedBy   String
-  location    String?
-  notes       String?
+model VehicleType {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  vehicles    Vehicle[]
 
-  @@map("sack_counters")
+  @@map("vehicle_types")
 }
 
-enum SackStatus {
-  AVAILABLE
-  IN_USE
-  DAMAGED
-  DISPOSED
+model Vehicle {
+  id             String       @id @default(uuid())
+  vehicleCode    String       @unique @map("vehicle_code")
+  licensePlate   String       @unique @map("license_plate")
+  vehicleTypeId  String       @map("vehicle_type_id")
+  driverName     String       @map("driver_name")
+  status         String       @default("active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  vehicleType    VehicleType  @relation(fields: [vehicleTypeId], references: [id])
+  sackSessions   SackCountingSession[]
+  boxSessions    BoxCountingSession[]
+
+  @@map("vehicles")
+}
+
+model SugarType {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  sackSessions SackCountingSession[]
+  boxSessions  BoxCountingSession[]
+
+  @@map("sugar_types")
+}
+
+model SackCountingSession {
+  id           String   @id @default(uuid())
+  vehicleId    String   @map("vehicle_id")
+  sugarTypeId  String   @map("sugar_type_id")
+  userId       String   @map("user_id")
+  totalSacks   Int      @default(0) @map("total_sacks")
+  totalWeight  Float    @default(0) @map("total_weight")
+  countingDate DateTime @default(now()) @map("counting_date")
+  status       String   @default("completed")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id])
+  sugarType    SugarType @relation(fields: [sugarTypeId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+  sackRows     SackRow[]
+
+  @@map("sack_counting_sessions")
+}
+
+model SackRow {
+  id         String   @id @default(uuid())
+  sessionId  String   @map("session_id")
+  rowNumber  Int      @map("row_number")
+  weightType String   @map("weight_type")
+  aiCount    Int?     @map("ai_count")
+  finalCount Int      @map("final_count")
+  imagePath  String?  @map("image_path")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  session    SackCountingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("sack_rows")
+}
+
+model BoxCountingSession {
+  id           String   @id @default(uuid())
+  vehicleId    String   @map("vehicle_id")
+  sugarTypeId  String   @map("sugar_type_id")
+  userId       String   @map("user_id")
+  totalBoxes   Int      @default(0) @map("total_boxes")
+  countingDate DateTime @default(now()) @map("counting_date")
+  status       String   @default("completed")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id])
+  sugarType    SugarType @relation(fields: [sugarTypeId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+  boxRows      BoxRow[]
+
+  @@map("box_counting_sessions")
+}
+
+model BoxRow {
+  id         String   @id @default(uuid())
+  sessionId  String   @map("session_id")
+  rowNumber  Int      @map("row_number")
+  aiCount    Int?     @map("ai_count")
+  finalCount Int      @map("final_count")
+  imagePath  String?  @map("image_path")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  session    BoxCountingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("box_rows")
 }

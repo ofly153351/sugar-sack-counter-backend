@@ -1,4 +1,4 @@
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from "bcrypt";
 
 export class PasswordUtils {
   /**
@@ -7,7 +7,10 @@ export class PasswordUtils {
    * @param saltRounds - Number of salt rounds (default: 12)
    * @returns Promise<string> - The hashed password
    */
-  static async hashPassword(password: string, saltRounds: number = 12): Promise<string> {
+  static async hashPassword(
+    password: string,
+    saltRounds: number = 12,
+  ): Promise<string> {
     return await bcrypt.hash(password, saltRounds);
   }
 
@@ -17,7 +20,10 @@ export class PasswordUtils {
    * @param hashedPassword - The hashed password to compare against
    * @returns Promise<boolean> - True if passwords match, false otherwise
    */
-  static async comparePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
+  static async comparePassword(
+    plainPassword: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return await bcrypt.compare(plainPassword, hashedPassword);
   }
 
@@ -26,27 +32,30 @@ export class PasswordUtils {
    * @param password - The password to validate
    * @returns Object containing validation result and errors
    */
-  static validatePasswordStrength(password: string): { isValid: boolean; errors: string[] } {
+  static validatePasswordStrength(password: string): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (password.length < 6) {
-      errors.push('Password must be at least 6 characters long');
+      errors.push("Password must be at least 6 characters long");
     }
 
     if (!/(?=.*[a-z])/.test(password)) {
-      errors.push('Password must contain at least one lowercase letter');
+      errors.push("Password must contain at least one lowercase letter");
     }
 
     if (!/(?=.*[A-Z])/.test(password)) {
-      errors.push('Password must contain at least one uppercase letter');
+      errors.push("Password must contain at least one uppercase letter");
     }
 
-    if (!/(?=.*\\d)/.test(password)) {
-      errors.push('Password must contain at least one number');
+    if (!/(?=.*\d)/.test(password)) {
+      errors.push("Password must contain at least one number");
     }
 
-    if (!/(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':"\\\\|,.<>\\/?])/.test(password)) {
-      errors.push('Password must contain at least one special character');
+    if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password)) {
+      errors.push("Password must contain at least one special character");
     }
 
     return {
@@ -61,8 +70,9 @@ export class PasswordUtils {
    * @returns string - The generated password
    */
   static generateRandomPassword(length: number = 12): string {
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{};\':"|,.<>?';
-    let password = '';
+    const charset =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{};':\"|,.<>?";
+    let password = "";
 
     for (let i = 0; i < length; i++) {
       const randomIndex = Math.floor(Math.random() * charset.length);

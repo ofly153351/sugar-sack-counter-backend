@@ -3,8 +3,18 @@ import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 import { swaggerConfig, swaggerOptions } from "./config";
+import { seedDatabase } from "../scripts/seed-database";
 
 async function bootstrap() {
+  // Seed database on startup in development
+  if (process.env.NODE_ENV === "development") {
+    try {
+      await seedDatabase();
+    } catch (error) {
+      console.warn("⚠️ Database seeding failed, continuing startup...");
+    }
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // Global validation pipe

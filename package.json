@@ -21,10 +21,13 @@
     "typeorm": "npm run build && npx typeorm",
     "migration:generate": "npm run build && npx typeorm migration:generate",
     "migration:run": "npm run build && npx typeorm migration:run",
-    "migration:revert": "npm run build && npx typeorm migration:revert"
+    "migration:revert": "npm run build && npx typeorm migration:revert",
+    "seed": "node scripts/seed-database.js",
+    "start:dev:seed": "npm run seed && nest start --watch"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
+    "pg": "^8.11.3",
     "@nestjs/config": "^3.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/jwt": "^10.1.0",

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from "@nestjs/common";
 import { DatabaseService } from "../../database/database.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
@@ -9,7 +14,67 @@ export class UserService {
   constructor(private database: DatabaseService) {}
 
   async create(createUserDto: CreateUserDto) {
-    const { email, password, username, roleId } = createUserDto;
+    const {
+      email,
+      password,
+      username,
+      roleId,
+      firstName,
+      lastName,
+      employeeCode,
+      phone,
+      title,
+    } = createUserDto;
+
+    // Check for duplicate email
+    const existingUserWithEmail = await this.database.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUserWithEmail) {
+      throw new ConflictException("Email already exists");
+    }
+
+    // Check for duplicate username
+    const existingUserWithUsername = await this.database.user.findUnique({
+      where: { username },
+    });
+
+    if (existingUserWithUsername) {
+      throw new ConflictException("Username already exists");
+    }
+
+    // Validate phone number
+    if (phone) {
+      // Check phone number length (max 10 characters)
+      if (phone.length > 10) {
+        throw new BadRequestException(
+          "Phone number must not exceed 10 characters",
+        );
+      }
+
+      // Check for duplicate phone number
+      const existingUserWithPhone = await this.database.userProfile.findFirst({
+        where: { phone },
+      });
+
+      if (existingUserWithPhone) {
+        throw new ConflictException("Phone number already exists");
+      }
+    }
+
+    // Validate employee code
+    if (employeeCode) {
+      // Check for duplicate employee code
+      const existingUserWithEmployeeCode =
+        await this.database.userProfile.findFirst({
+          where: { employeeCode },
+        });
+
+      if (existingUserWithEmployeeCode) {
+        throw new ConflictException("Employee code already exists");
+      }
+    }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -22,6 +87,16 @@ export class UserService {
         role: {
           connect: {
             id: roleId || (await this.getDefaultRoleId()),
+          },
+        },
+        profile: {
+          create: {
+            title: title,
+            firstName: firstName || "Unknown",
+            lastName: lastName || "User",
+            position: "User",
+            phone: phone,
+            employeeCode: employeeCode,
           },
         },
       },
@@ -48,12 +123,8 @@ export class UserService {
   async findOne(id: string) {
     const user = await this.database.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        profile: true,
       },
     });
 

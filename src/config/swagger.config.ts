@@ -2,7 +2,7 @@ import { DocumentBuilder } from "@nestjs/swagger";
 
 export const swaggerConfig = new DocumentBuilder()
   .setTitle("Sugar Sack Counter API")
-  .setDescription("API สำหรับระบบนับกระสอบน้ำตาลด้วย AI")
+  .setDescription("API ")
   .setVersion("1.0")
   .addTag("auth", "การยืนยันตัวตน")
   .addTag("users", "จัดการผู้ใช้งาน")

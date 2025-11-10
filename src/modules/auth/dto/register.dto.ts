@@ -4,12 +4,13 @@ import {
   IsString,
   MinLength,
   IsOptional,
+  isString,
 } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class RegisterDto {
   @ApiProperty({
-    description: "อีเมลผู้ใช้งาน",
+    description: "Email",
     example: "user@example.com",
     required: true,
   })
@@ -18,7 +19,7 @@ export class RegisterDto {
   email: string;
 
   @ApiProperty({
-    description: "รหัสผ่าน",
+    description: "password",
     example: "password123",
     required: true,
     minLength: 6,
@@ -29,7 +30,7 @@ export class RegisterDto {
   password: string;
 
   @ApiProperty({
-    description: "ชื่อผู้ใช้งาน",
+    description: "username",
     example: "johndoe",
     required: true,
   })
@@ -38,11 +39,56 @@ export class RegisterDto {
   username: string;
 
   @ApiProperty({
-    description: "รหัสบทบาทผู้ใช้งาน",
+    description: "firstName",
+    example: "john",
+    required: true,
+  })
+  @IsString()
+  @IsNotEmpty()
+  firstName: string;
+
+  @ApiProperty({
+    description: "lastName",
+    example: "doe",
+    required: true,
+  })
+  @IsString()
+  @IsNotEmpty()
+  lastName: string;
+
+  @ApiProperty({
+    description: "role",
     example: "user",
     required: false,
   })
   @IsString()
   @IsOptional()
   roleId?: string;
+
+  @ApiProperty({
+    description: "employeeCode",
+    example: "ADM001",
+    required: true,
+  })
+  @IsString()
+  @IsOptional()
+  employeeCode?: string;
+
+  @ApiProperty({
+    description: "Phone",
+    example: "092332214523",
+    required: true,
+  })
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @ApiProperty({
+    description: "title",
+    example: "Mr.",
+    required: true,
+  })
+  @IsString()
+  @IsOptional()
+  title?: string;
 }

@@ -16,17 +16,24 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException("Invalid credentials");
     }
-    return user;
+    // Get user with profile data
+    const userWithProfile = await this.userService.findOne(user.id);
+    return userWithProfile;
   }
 
   async login(user: any) {
     const payload = { email: user.email, sub: user.id };
+    // Get user with profile data
+    const userWithProfile = await this.userService.findOne(user.id);
+
     return {
       access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        username: user.username,
+        firstName: userWithProfile.profile?.firstName,
+        lastName: userWithProfile.profile?.lastName,
       },
     };
   }
@@ -34,12 +41,16 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     // Check if user already exists
     const existingUser = await this.userService.findByEmail(registerDto.email);
+
     if (existingUser) {
       throw new UnauthorizedException("User already exists");
     }
 
     // Create new user
     const user = await this.userService.create(registerDto);
+
+    // Get user with profile data
+    const userWithProfile = await this.userService.findOne(user.id);
 
     // Generate JWT token
     const payload = { email: user.email, sub: user.id };
@@ -49,6 +60,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         username: user.username,
+        firstName: userWithProfile.profile?.firstName,
+        lastName: userWithProfile.profile?.lastName,
       },
     };
   }

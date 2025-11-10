@@ -37,7 +37,9 @@ export class AuthController {
       example: {
         id: "uuid-string",
         email: "user@example.com",
-        name: "John Doe",
+        username: "johndoe",
+        firstName: "John",
+        lastName: "Doe",
         access_token: "jwt-token-string",
       },
     },
@@ -64,7 +66,9 @@ export class AuthController {
       example: {
         id: "uuid-string",
         email: "user@example.com",
-        name: "John Doe",
+        username: "johndoe",
+        firstName: "John",
+        lastName: "Doe",
         access_token: "jwt-token-string",
       },
     },
@@ -91,7 +95,9 @@ export class AuthController {
       example: {
         id: "uuid-string",
         email: "user@example.com",
-        name: "John Doe",
+        username: "johndoe",
+        firstName: "John",
+        lastName: "Doe",
         role: "user",
       },
     },

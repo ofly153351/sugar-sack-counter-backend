@@ -1,15 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import * as bcrypt from 'bcrypt';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { DatabaseService } from "../../database/database.service";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import * as bcrypt from "bcrypt";
 
 @Injectable()
 export class UserService {
   constructor(private database: DatabaseService) {}
 
   async create(createUserDto: CreateUserDto) {
-    const { email, password, name } = createUserDto;
+    const { email, password, username, roleId } = createUserDto;
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -18,7 +18,12 @@ export class UserService {
       data: {
         email,
         password: hashedPassword,
-        name,
+        username,
+        role: {
+          connect: {
+            id: roleId || (await this.getDefaultRoleId()),
+          },
+        },
       },
     });
 
@@ -32,7 +37,7 @@ export class UserService {
       select: {
         id: true,
         email: true,
-        name: true,
+        username: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -46,7 +51,7 @@ export class UserService {
       select: {
         id: true,
         email: true,
-        name: true,
+        username: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -87,7 +92,7 @@ export class UserService {
       select: {
         id: true,
         email: true,
-        name: true,
+        username: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -109,7 +114,7 @@ export class UserService {
       where: { id },
     });
 
-    return { message: 'User deleted successfully' };
+    return { message: "User deleted successfully" };
   }
 
   async validateUser(email: string, password: string) {
@@ -125,5 +130,26 @@ export class UserService {
 
     const { password: _, ...result } = user;
     return result;
+  }
+
+  private async getDefaultRoleId(): Promise<string> {
+    // Try to find default role or create one if it doesn't exist
+    const defaultRole = await this.database.role.findFirst({
+      where: { name: "user" },
+    });
+
+    if (defaultRole) {
+      return defaultRole.id;
+    }
+
+    // Create default role if it doesn't exist
+    const newRole = await this.database.role.create({
+      data: {
+        name: "user",
+        description: "Default user role",
+      },
+    });
+
+    return newRole.id;
   }
 }

@@ -1,8 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { UserService } from '../user/user.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { UserService } from "../user/user.service";
+import { RegisterDto } from "./dto/register.dto";
+import { LoginDto } from "./dto/login.dto";
 
 @Injectable()
 export class AuthService {
@@ -14,7 +14,7 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.userService.validateUser(email, password);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
     return user;
   }
@@ -35,7 +35,7 @@ export class AuthService {
     // Check if user already exists
     const existingUser = await this.userService.findByEmail(registerDto.email);
     if (existingUser) {
-      throw new UnauthorizedException('User already exists');
+      throw new UnauthorizedException("User already exists");
     }
 
     // Create new user
@@ -48,7 +48,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        username: user.username,
       },
     };
   }
@@ -66,7 +66,7 @@ export class AuthService {
       const user = await this.userService.findOne(payload.sub);
       return user;
     } catch (error) {
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException("Invalid token");
     }
   }
 }

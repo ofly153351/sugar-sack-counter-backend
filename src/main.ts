@@ -1,6 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule } from "@nestjs/swagger";
+const cookieParser = require("cookie-parser");
 import { AppModule } from "./app.module";
 import { swaggerConfig, swaggerOptions } from "./config";
 import { seedDatabase } from "../scripts/seed-database";
@@ -20,6 +21,9 @@ async function bootstrap() {
   // Set global prefix
   app.setGlobalPrefix("api");
 
+  // Cookie parser
+  app.use(cookieParser());
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
@@ -29,8 +33,13 @@ async function bootstrap() {
     }),
   );
 
-  // Enable CORS
-  app.enableCors();
+  // Enable CORS with credentials for cookie support
+  app.enableCors({
+    origin: ["http://localhost:3000", "http://localhost:3001"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  });
 
   // Swagger configuration
   const document = SwaggerModule.createDocument(app, swaggerConfig);

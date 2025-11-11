@@ -11,8 +11,8 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.userService.validateUser(email, password);
+  async validateUser(username: string, password: string): Promise<any> {
+    const user = await this.userService.validateUser(username, password);
     if (!user) {
       throw new UnauthorizedException("Invalid credentials");
     }
@@ -21,24 +21,41 @@ export class AuthService {
     return userWithProfile;
   }
 
-  async login(user: any) {
-    const payload = { email: user.email, sub: user.id };
+  async login(user: any, response: any) {
+    // Get user with role and profile data
+    const userWithRole = await this.userService.findUserWithRole(user.id);
+
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      role: userWithRole.role.name,
+    };
     // Get user with profile data
     const userWithProfile = await this.userService.findOne(user.id);
 
+    const token = this.jwtService.sign(payload);
+
+    // Set HTTP-only cookie
+    response.cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: "/",
+    });
+
     return {
-      access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
         email: user.email,
         username: user.username,
-        firstName: userWithProfile.profile?.firstName,
-        lastName: userWithProfile.profile?.lastName,
+        firstName: userWithRole.profile?.firstName,
+        lastName: userWithRole.profile?.lastName,
       },
     };
   }
 
-  async register(registerDto: RegisterDto) {
+  async register(registerDto: RegisterDto, response: any) {
     // Check if user already exists
     const existingUser = await this.userService.findByEmail(registerDto.email);
 
@@ -49,27 +66,59 @@ export class AuthService {
     // Create new user
     const user = await this.userService.create(registerDto);
 
-    // Get user with profile data
-    const userWithProfile = await this.userService.findOne(user.id);
+    // Get user with role and profile data
+    const userWithRole = await this.userService.findUserWithRole(user.id);
 
     // Generate JWT token
-    const payload = { email: user.email, sub: user.id };
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      role: userWithRole.role.name,
+    };
+    const token = this.jwtService.sign(payload);
+
+    // Set HTTP-only cookie
+    response.cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: "/",
+    });
+
     return {
-      access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
         email: user.email,
         username: user.username,
-        firstName: userWithProfile.profile?.firstName,
-        lastName: userWithProfile.profile?.lastName,
+        firstName: userWithRole.profile?.firstName,
+        lastName: userWithRole.profile?.lastName,
       },
     };
   }
 
-  async refreshToken(user: any) {
-    const payload = { email: user.email, sub: user.id };
+  async refreshToken(user: any, response: any) {
+    // Get user with role data
+    const userWithRole = await this.userService.findUserWithRole(user.id);
+
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      role: userWithRole.role.name,
+    };
+    const token = this.jwtService.sign(payload);
+
+    // Set HTTP-only cookie
+    response.cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: "/",
+    });
+
     return {
-      access_token: this.jwtService.sign(payload),
+      message: "Token refreshed successfully",
     };
   }
 

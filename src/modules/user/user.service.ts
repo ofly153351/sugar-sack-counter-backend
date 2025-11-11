@@ -18,7 +18,6 @@ export class UserService {
       email,
       password,
       username,
-      roleId,
       firstName,
       lastName,
       employeeCode,
@@ -86,7 +85,7 @@ export class UserService {
         username,
         role: {
           connect: {
-            id: roleId || (await this.getDefaultRoleId()),
+            id: await this.getDefaultRoleId(),
           },
         },
         profile: {
@@ -125,6 +124,23 @@ export class UserService {
       where: { id },
       include: {
         profile: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return user;
+  }
+
+  async findUserWithRole(id: string) {
+    const user = await this.database.user.findUnique({
+      where: { id },
+      include: {
+        role: true,
+        profile: true,
       },
     });
 
@@ -138,6 +154,12 @@ export class UserService {
   async findByEmail(email: string) {
     return this.database.user.findUnique({
       where: { email },
+    });
+  }
+
+  async findByUsername(username: string) {
+    return this.database.user.findUnique({
+      where: { username },
     });
   }
 
@@ -188,8 +210,8 @@ export class UserService {
     return { message: "User deleted successfully" };
   }
 
-  async validateUser(email: string, password: string) {
-    const user = await this.findByEmail(email);
+  async validateUser(username: string, password: string) {
+    const user = await this.findByUsername(username);
     if (!user) {
       return null;
     }

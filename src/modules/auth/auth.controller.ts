@@ -5,12 +5,15 @@ import {
   UseGuards,
   Get,
   Request,
+  Res,
+  Query,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { LocalAuthGuard } from "../../common/guards/local-auth.guard";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
+import { Response } from "express";
 import {
   ApiTags,
   ApiOperation,
@@ -26,13 +29,13 @@ export class AuthController {
 
   @Post("register")
   @ApiOperation({
-    summary: "สมัครสมาชิกใหม่",
-    description: "สร้างบัญชีผู้ใช้งานใหม่ในระบบ",
+    summary: "Register new user",
+    description: "Create a new user account in the system",
   })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
     status: 201,
-    description: "สมัครสมาชิกสำเร็จ",
+    description: "Registration successful",
     schema: {
       example: {
         id: "uuid-string",
@@ -40,28 +43,28 @@ export class AuthController {
         username: "johndoe",
         firstName: "John",
         lastName: "Doe",
-        access_token: "jwt-token-string",
       },
     },
   })
   @ApiResponse({
     status: 400,
-    description: "ข้อมูลไม่ถูกต้องหรืออีเมลซ้ำ",
+    description: "Invalid data or email already exists",
   })
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  async register(@Body() registerDto: RegisterDto, @Res() response: Response) {
+    const result = await this.authService.register(registerDto, response);
+    return response.json(result);
   }
 
   @UseGuards(LocalAuthGuard)
   @Post("login")
   @ApiOperation({
-    summary: "เข้าสู่ระบบ",
-    description: "เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน",
+    summary: "User login",
+    description: "Login with username and password",
   })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
-    description: "เข้าสู่ระบบสำเร็จ",
+    description: "Login successful",
     schema: {
       example: {
         id: "uuid-string",
@@ -69,28 +72,47 @@ export class AuthController {
         username: "johndoe",
         firstName: "John",
         lastName: "Doe",
-        access_token: "jwt-token-string",
       },
     },
   })
   @ApiResponse({
     status: 401,
-    description: "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+    description: "Invalid username or password",
   })
-  async login(@Request() req) {
-    return this.authService.login(req.user);
+  async login(@Request() req, @Res() response: Response) {
+    const result = await this.authService.login(req.user, response);
+    return response.json(result);
+  }
+
+  @Post("logout")
+  @ApiOperation({
+    summary: "User logout",
+    description: "Clear token and logout from the system",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Logout successful",
+    schema: {
+      example: {
+        message: "Logout successful",
+      },
+    },
+  })
+  async logout(@Res({ passthrough: true }) response: Response) {
+    response.clearCookie("access_token");
+    return { message: "Logout successful" };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get("profile")
   @ApiBearerAuth("JWT-auth")
   @ApiOperation({
-    summary: "ดูข้อมูลโปรไฟล์",
-    description: "ดูข้อมูลโปรไฟล์ของผู้ใช้งานปัจจุบัน",
+    summary: "Get user profile",
+    description: "Get profile information of the current user",
   })
   @ApiResponse({
     status: 200,
-    description: "ดึงข้อมูลโปรไฟล์สำเร็จ",
+    description: "Profile retrieved successfully",
     schema: {
       example: {
         id: "uuid-string",
@@ -98,13 +120,12 @@ export class AuthController {
         username: "johndoe",
         firstName: "John",
         lastName: "Doe",
-        role: "user",
       },
     },
   })
   @ApiResponse({
     status: 401,
-    description: "ไม่มีสิทธิ์เข้าถึง",
+    description: "Unauthorized access",
   })
   getProfile(@Request() req) {
     return req.user;
@@ -114,23 +135,88 @@ export class AuthController {
   @Post("refresh")
   @ApiBearerAuth("JWT-auth")
   @ApiOperation({
-    summary: "รีเฟรชโทเคน",
-    description: "ขอโทเคนใหม่เมื่อโทเคนเก่าใกล้หมดอายุ",
+    summary: "Refresh token",
+    description: "Get new token when the old token is about to expire",
   })
   @ApiResponse({
     status: 200,
-    description: "รีเฟรชโทเคนสำเร็จ",
+    description: "Token refreshed successfully",
     schema: {
       example: {
-        access_token: "new-jwt-token-string",
+        message: "Token refreshed successfully",
       },
     },
   })
   @ApiResponse({
     status: 401,
-    description: "โทเคนไม่ถูกต้อง",
+    description: "Invalid token",
   })
-  refreshToken(@Request() req) {
-    return this.authService.refreshToken(req.user);
+  async refreshToken(@Request() req, @Res() response: Response) {
+    const result = await this.authService.refreshToken(req.user, response);
+    return response.json(result);
+  }
+
+  @Get("test-cookie")
+  @ApiOperation({
+    summary: "Test cookie functionality",
+    description: "Test if cookie setting works correctly",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Test successful",
+    schema: {
+      example: {
+        message: "Cookie test successful",
+        cookieSet: true,
+      },
+    },
+  })
+  async testCookie(@Res() response: Response) {
+    // Set a test cookie
+    response.cookie("test_cookie", "test_value", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: "/",
+    });
+
+    return response.json({
+      message: "Cookie test successful",
+      cookieSet: true,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("check-role")
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({
+    summary: "Check user role",
+    description: "Check if current user has required role",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Role check successful",
+    schema: {
+      example: {
+        hasRole: true,
+        userRole: "admin",
+        requiredRole: "admin",
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized",
+  })
+  async checkRole(@Request() req, @Query("role") requiredRole: string) {
+    const userRole = req.user.role;
+    const hasRole = userRole === requiredRole;
+
+    return {
+      hasRole,
+      userRole,
+      requiredRole,
+    };
   }
 }

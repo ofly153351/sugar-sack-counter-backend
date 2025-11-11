@@ -4,7 +4,7 @@ import {
   IsString,
   MinLength,
   IsOptional,
-  isString,
+  ValidateIf,
 } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
@@ -57,18 +57,9 @@ export class RegisterDto {
   lastName: string;
 
   @ApiProperty({
-    description: "role",
-    example: "user",
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  roleId?: string;
-
-  @ApiProperty({
     description: "employeeCode",
     example: "ADM001",
-    required: true,
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -77,7 +68,7 @@ export class RegisterDto {
   @ApiProperty({
     description: "Phone",
     example: "092332214523",
-    required: true,
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -86,7 +77,7 @@ export class RegisterDto {
   @ApiProperty({
     description: "title",
     example: "Mr.",
-    required: true,
+    required: false,
   })
   @IsString()
   @IsOptional()

@@ -4,6 +4,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { UserModule } from "./modules/user/user.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { AdminModule } from "./modules/admin/admin.module";
 import { DatabaseModule } from "./database/database.module";
 import appConfig from "./config/app.config";
 
@@ -16,6 +17,7 @@ import appConfig from "./config/app.config";
     DatabaseModule,
     UserModule,
     AuthModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

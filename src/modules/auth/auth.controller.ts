@@ -189,34 +189,29 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get("check-role")
-  @ApiBearerAuth("JWT-auth")
   @ApiOperation({
     summary: "Check user role",
-    description: "Check if current user has required role",
+    description:
+      "Get current user role information from JWT token (uses cookie authentication)",
   })
   @ApiResponse({
     status: 200,
-    description: "Role check successful",
+    description: "Role information retrieved successfully",
     schema: {
       example: {
-        hasRole: true,
-        userRole: "admin",
-        requiredRole: "admin",
+        role: "admin",
       },
     },
   })
   @ApiResponse({
     status: 401,
-    description: "Unauthorized",
+    description: "Unauthorized - No valid token in cookie",
   })
-  async checkRole(@Request() req, @Query("role") requiredRole: string) {
+  async checkRole(@Request() req) {
     const userRole = req.user.role;
-    const hasRole = userRole === requiredRole;
 
     return {
-      hasRole,
-      userRole,
-      requiredRole,
+      role: userRole,
     };
   }
 }

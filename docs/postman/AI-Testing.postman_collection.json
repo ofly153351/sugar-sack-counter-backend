@@ -1,0 +1,255 @@
+{
+  "info": {
+    "name": "Sugar Sack Counter - AI Integration Testing",
+    "description": "Postman collection for testing the AI integration between NestJS and Rust AI service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Check Rust AI Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/detect",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["detect"]
+            },
+            "description": "Check if Rust AI service is running (should return 405 Method Not Allowed for GET)"
+          },
+          "response": []
+        },
+        {
+          "name": "Check NestJS Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": []
+            },
+            "description": "Check if NestJS service is running"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Rust AI Service Tests",
+      "item": [
+        {
+          "name": "POST /detect - Person Detection",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:5000/detect",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["detect"]
+            },
+            "description": "Test person detection directly on Rust AI service"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /detect - Invalid Request (No Image)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "http://localhost:5000/detect",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["detect"]
+            },
+            "description": "Test error handling when no image is provided"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "NestJS Integration Tests",
+      "item": [
+        {
+          "name": "POST /ai/detect - Person Detection",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3000/ai/detect",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["ai", "detect"]
+            },
+            "description": "Test person detection through NestJS integration"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /ai/detect - Invalid Request (No Image)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "http://localhost:3000/ai/detect",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["ai", "detect"]
+            },
+            "description": "Test error handling when no image is provided to NestJS"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /ai/detect - Rust Service Down",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3000/ai/detect",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["ai", "detect"]
+            },
+            "description": "Test error handling when Rust AI service is not running"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Performance Tests",
+      "item": [
+        {
+          "name": "Concurrent Detection Requests",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3000/ai/detect",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["ai", "detect"]
+            },
+            "description": "Run multiple concurrent requests to test performance"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url_nestjs",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "base_url_rust",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "console.log('Starting AI Integration Test');"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Test response structure",
+          "pm.test(\"Status code is 200\", function () {",
+          "    pm.response.to.have.status(200);",
+          "});",
+          "",
+          "pm.test(\"Response has person_count field\", function () {",
+          "    var jsonData = pm.response.json();",
+          "    pm.expect(jsonData).to.have.property('person_count');",
+          "    pm.expect(jsonData.person_count).to.be.a('number');",
+          "});",
+          "",
+          "// For Rust service direct tests",
+          "if (pm.request.url.toString().includes('5000')) {",
+          "    pm.test(\"Rust service response has status field\", function () {",
+          "        var jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('status');",
+          "        pm.expect(jsonData.status).to.be.oneOf(['ok', 'error']);",
+          "    });",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}

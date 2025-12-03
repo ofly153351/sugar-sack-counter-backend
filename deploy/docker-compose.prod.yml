@@ -1,13 +1,13 @@
 version: "3.8"
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database (Internal)
   postgres:
     image: postgres:15-alpine
     environment:
       - POSTGRES_DB=sugar_sack_counter
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-sugar_password}
     ports:
       - "5432:5432"
     volumes:
@@ -21,6 +21,14 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    command: >
+      postgres -c max_connections=100
+               -c shared_buffers=256MB
+               -c effective_cache_size=1GB
+               -c maintenance_work_mem=64MB
+               -c checkpoint_completion_target=0.9
+               -c wal_buffers=16MB
+               -c default_statistics_target=100
 
   # MinIO Object Storage
   minio:
@@ -67,7 +75,7 @@ services:
       dockerfile: Dockerfile.prod
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-password}@postgres:5432/sugar_sack_counter?schema=public
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-sugar_password}@postgres:5432/sugar_sack_counter?schema=public
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this}
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
@@ -76,15 +84,19 @@ services:
       - MINIO_BUCKET=sugar-sacks
       - AI_SERVICE_URL=${AI_SERVICE_URL:-http://ai-service:8000}
       - PORT=3000
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
     ports:
       - "3000:3000"
     depends_on:
-      - postgres
-      - minio
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
     networks:
       - sugar-sack-network
     volumes:
-      - ./uploads:/app/uploads
+      - uploads:/app/uploads
+      - ./logs:/app/logs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
@@ -138,11 +150,39 @@ services:
       - sugar-sack-network
     restart: unless-stopped
 
+  # Database Backup Service (optional)
+  db-backup:
+    image: postgres:15-alpine
+    depends_on:
+      - postgres
+    volumes:
+      - db_backups:/backups
+      - ./scripts/backup.sh:/backup.sh
+    networks:
+      - sugar-sack-network
+    command: >
+      /bin/sh -c "
+      echo 'Database backup service started';
+      while true; do
+        sleep 86400;
+        PGPASSWORD=${DB_PASSWORD:-sugar_password} pg_dump -h postgres -U postgres sugar_sack_counter > /backups/backup_$(date +%Y%m%d_%H%M%S).sql;
+        echo 'Backup created at $(date)';
+        find /backups -name 'backup_*.sql' -mtime +7 -delete;
+      done
+      "
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   minio_data:
   ai_models:
+  uploads:
+  logs:
+  db_backups:
 
 networks:
   sugar-sack-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

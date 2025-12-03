@@ -134,7 +134,7 @@ services:
     #           count: 1
     #           capabilities: [gpu]
 
-  # Nginx Reverse Proxy (optional)
+  # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
     ports:
@@ -150,35 +150,12 @@ services:
       - sugar-sack-network
     restart: unless-stopped
 
-  # Database Backup Service (optional)
-  db-backup:
-    image: postgres:15-alpine
-    depends_on:
-      - postgres
-    volumes:
-      - db_backups:/backups
-      - ./scripts/backup.sh:/backup.sh
-    networks:
-      - sugar-sack-network
-    command: >
-      /bin/sh -c "
-      echo 'Database backup service started';
-      while true; do
-        sleep 86400;
-        PGPASSWORD=${DB_PASSWORD:-sugar_password} pg_dump -h postgres -U postgres sugar_sack_counter > /backups/backup_$(date +%Y%m%d_%H%M%S).sql;
-        echo 'Backup created at $(date)';
-        find /backups -name 'backup_*.sql' -mtime +7 -delete;
-      done
-      "
-    restart: unless-stopped
-
 volumes:
   postgres_data:
   minio_data:
   ai_models:
   uploads:
   logs:
-  db_backups:
 
 networks:
   sugar-sack-network:

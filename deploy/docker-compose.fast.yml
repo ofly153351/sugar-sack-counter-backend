@@ -38,9 +38,9 @@ services:
       timeout: 20s
       retries: 3
 
-  # NestJS Backend (ใช้ Node.js image โดยตรง ไม่ต้อง build)
+  # NestJS Backend - Using Bun for faster installation
   backend:
-    image: node:18-alpine
+    image: oven/bun:1-alpine
     working_dir: /app
     environment:
       NODE_ENV: production
@@ -53,11 +53,13 @@ services:
       MINIO_BUCKET: sugar-sacks
       PORT: 3000
       CORS_ORIGIN: "*"
+      BUN_JSC_useJIT: "1"
+      BUN_JSC_useDFGJIT: "1"
     ports:
       - "3000:3000"
     volumes:
       - ../:/app
-      - backend_node_modules:/app/node_modules
+      - backend_bun_cache:/root/.bun/install/cache
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,18 +67,33 @@ services:
         condition: service_started
     command: >
       sh -c "
-      echo 'Cleaning up old node_modules...' &&
-      rm -rf node_modules package-lock.json 2>/dev/null || true &&
-      echo 'Installing dependencies...' &&
-      npm install --omit=dev --no-audit --prefer-offline --progress=false &&
+      # Clean up old files
+      echo 'Cleaning up old files...' &&
+      rm -rf node_modules bun.lockb 2>/dev/null || true &&
+
+      # Install dependencies with Bun (much faster and uses less memory)
+      echo 'Installing dependencies with Bun...' &&
+      bun install --production --frozen-lockfile --no-progress &&
+
+      # Generate Prisma client (Bun can run npx commands)
       echo 'Generating Prisma client...' &&
-      npx prisma generate &&
+      bunx prisma generate --schema=./prisma/schema.prisma &&
+
+      # Build application with Bun
       echo 'Building application...' &&
-      npm run build &&
+      bun run build 2>&1 | tail -20 &&
+
+      # Start application
       echo 'Starting application...' &&
-      node dist/main.js
+      bun run dist/main.js
       "
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   # Nginx Reverse Proxy
   nginx:
@@ -94,7 +111,7 @@ services:
 volumes:
   postgres_data:
   minio_data:
-  backend_node_modules:
+  backend_bun_cache:
 
 networks:
   default:

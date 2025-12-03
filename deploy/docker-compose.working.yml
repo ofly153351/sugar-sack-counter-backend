@@ -32,13 +32,8 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
 
-  # NestJS Backend - Optimized for production
+  # NestJS Backend - Simple and reliable
   backend:
     image: node:18-alpine
     working_dir: /app
@@ -53,32 +48,24 @@ services:
       MINIO_BUCKET: sugar-sacks
       PORT: 3000
       CORS_ORIGIN: "*"
-      NODE_OPTIONS: "--max-old-space-size=512"
     ports:
       - "3000:3000"
     volumes:
       - ../:/app
-      - backend_node_modules:/app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_started
     command: >
       sh -c "
-      # Clean up old files
-      echo 'Cleaning up old files...' &&
-      rm -rf node_modules package-lock.json 2>/dev/null || true &&
-
-      # Install dependencies (including dev dependencies for build tools)
+      # Install dependencies
       echo 'Installing dependencies...' &&
-      npm install --no-audit --prefer-offline --progress=false &&
+      npm install &&
 
       # Generate Prisma client
       echo 'Generating Prisma client...' &&
       npx prisma generate &&
 
-      # Build application using npm script
+      # Build application
       echo 'Building application...' &&
       npm run build &&
 
@@ -87,31 +74,11 @@ services:
       node dist/main.js
       "
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
-
-  # Nginx Reverse Proxy (optional - comment out if port 80 is in use)
-  # nginx:
-  #   image: nginx:alpine
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./nginx/ssl:/etc/nginx/ssl:ro
-  #   depends_on:
-  #     - backend
-  #   restart: unless-stopped
 
 volumes:
   postgres_data:
   minio_data:
-  backend_node_modules:
 
 networks:
   default:
-    name: sugar-sack-network
+    driver: bridge

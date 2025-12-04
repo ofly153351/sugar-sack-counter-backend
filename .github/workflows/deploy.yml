@@ -16,6 +16,7 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
           port: ${{ secrets.DO_PORT }}
+          timeout: 1800 # เพิ่ม timeout 30 นาที
           script: |
             echo "==> Switching to project directory"
             cd /opt/sugar-sack-counter/sugar-sack-counter-backend
@@ -35,14 +36,32 @@ jobs:
             AI_SERVICE_URL=http://ai-service:8000
             EOF
 
-            echo "==> Building backend Docker container..."
-            docker-compose -f deploy/docker-compose.working.yml build --no-cache backend
+            echo "==> Building backend Docker container (without touching Postgres/MinIO)..."
+            docker-compose -f deploy/docker-compose.working.yml build backend
 
             echo "==> Deploying backend container..."
             docker-compose -f deploy/docker-compose.working.yml up -d backend
 
+            echo "==> Waiting for backend to be ready..."
+            sleep 10
+
+            echo "==> Checking backend health..."
+            MAX_RETRIES=10
+            COUNT=0
+            until curl -f http://localhost:3000/api/health; do
+              COUNT=$((COUNT+1))
+              if [ $COUNT -ge $MAX_RETRIES ]; then
+                echo "Backend health check failed!"
+                exit 1
+              fi
+              echo "Backend not ready yet, retrying..."
+              sleep 5
+            done
+
             echo "==> Running Prisma db push..."
             docker-compose -f deploy/docker-compose.working.yml exec backend npx prisma db push
+
+            echo "Backend deployment completed successfully!"
 
   notify:
     needs: deploy

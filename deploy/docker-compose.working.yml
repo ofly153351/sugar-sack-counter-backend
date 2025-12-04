@@ -1,7 +1,6 @@
 version: "3.8"
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     environment:
@@ -19,7 +18,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # MinIO
   minio:
     image: minio/minio:latest
     environment:
@@ -33,10 +31,13 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
 
-  # NestJS Backend
   backend:
     image: node:18-alpine
     working_dir: /app
+
+    volumes:
+      - /opt/sugar-sack-counter/sugar-sack-counter-backend:/app
+
     environment:
       NODE_ENV: production
       DATABASE_URL: "postgresql://postgres:${DB_PASSWORD:-sugar_password}@postgres:5432/sugar_sack_counter?schema=public"
@@ -47,32 +48,25 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       MINIO_BUCKET: sugar-sacks
       PORT: 3000
-      CORS_ORIGIN: "*"
       HOST: 0.0.0.0
+
     ports:
       - "3000:3000"
-    volumes:
-      - ./sugar-sack-counter-backend:/app
+
     depends_on:
       postgres:
         condition: service_healthy
+
     command: >
       sh -c "
-      echo '📦 Installing dependencies...' &&
-      npm install --omit=dev --no-audit --prefer-offline &&
-      echo '🔧 Generating Prisma client...' &&
+      npm install &&
       npx prisma generate &&
-      echo '🏗️ Building application...' &&
       npm run build &&
-      echo '🚀 Starting application...' &&
       node dist/main.js
       "
+
     restart: unless-stopped
 
 volumes:
   postgres_data:
   minio_data:
-
-networks:
-  default:
-    driver: bridge

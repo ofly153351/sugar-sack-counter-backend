@@ -33,7 +33,7 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
 
-  # NestJS Backend - Fixed environment variables
+  # NestJS Backend - Simple and reliable
   backend:
     image: node:18-alpine
     working_dir: /app
@@ -58,34 +58,14 @@ services:
         condition: service_healthy
     command: >
       sh -c "
-      # Install dependencies if node_modules doesn't exist
-      if [ ! -d 'node_modules' ]; then
-        echo 'Installing dependencies...' &&
-        npm install --no-audit --prefer-offline --progress=false
-      else
-        echo 'Using existing dependencies...'
-      fi &&
-
-      # Generate Prisma client if not already generated
-      if [ ! -d 'node_modules/@prisma/client' ]; then
-        echo 'Generating Prisma client...' &&
-        npx prisma generate
-      else
-        echo 'Prisma client already generated...'
-      fi &&
-
-      # Build if dist directory doesn't exist
-      if [ ! -d 'dist' ]; then
-        echo 'Building application...' &&
-        npm run build
-      else
-        echo 'Using existing build...'
-      fi &&
-
-      # Start the application
-      echo 'Starting NestJS application on port 3000...' &&
-      echo 'DATABASE_URL: '$$DATABASE_URL &&
-      exec node dist/main.js
+      echo 'Installing dependencies...' &&
+      npm install --no-audit --prefer-offline --progress=false &&
+      echo 'Generating Prisma client...' &&
+      npx prisma generate &&
+      echo 'Building application...' &&
+      npm run build &&
+      echo 'Starting application...' &&
+      node dist/main.js
       "
     restart: unless-stopped
 

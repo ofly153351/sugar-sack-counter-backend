@@ -23,7 +23,7 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Container Registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -36,12 +36,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -50,28 +45,27 @@ jobs:
           file: ./Dockerfile.prod
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to DigitalOcean
+      - name: Deploy to DigitalOcean via SSH + password
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
-          key: ${{ secrets.DO_SSH_KEY }}
+          password: ${{ secrets.DO_PASSWORD }} # ใช้ password แทน key
           port: ${{ secrets.DO_PORT }}
           script: |
+            echo "==> Switching to project directory"
             cd /opt/sugar-sack-counter
 
+            echo "==> Pulling latest code..."
             git pull origin main
 
-            echo "Updating env..."
+            echo "==> Writing environment variables..."
             cat > .env << EOF
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -83,18 +77,24 @@ jobs:
             AI_SERVICE_URL=http://ai-service:8000
             EOF
 
+            echo "==> Deploying Docker services..."
             docker-compose -f deploy/docker-compose.prod.yml pull
             docker-compose -f deploy/docker-compose.prod.yml down
             docker-compose -f deploy/docker-compose.prod.yml up -d
 
+            echo "==> Running Prisma db push..."
             docker-compose -f deploy/docker-compose.prod.yml exec backend npx prisma db push
 
+            echo "==> Cleaning up unused images..."
             docker image prune -f
 
+            echo "==> Waiting for server..."
             sleep 10
+
+            echo "==> Checking health..."
             curl -f http://localhost:3000/api/health || exit 1
 
-            echo "Deployment completed!"
+            echo "Deployment completed successfully!"
 
   notify:
     needs: deploy
@@ -102,22 +102,22 @@ jobs:
     if: always()
 
     steps:
-      - name: Slack Success
+      - name: Slack Success Notification
         if: success()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: deployments
           SLACK_TITLE: "✅ Deployment Successful"
-          SLACK_MESSAGE: "Backend deployed to DigitalOcean"
+          SLACK_MESSAGE: "Backend deployed successfully to DigitalOcean"
           SLACK_COLOR: good
 
-      - name: Slack Failure
+      - name: Slack Failure Notification
         if: failure()
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: deployments
           SLACK_TITLE: "❌ Deployment Failed"
-          SLACK_MESSAGE: "Backend deployment failed"
+          SLACK_MESSAGE: "Backend deployment failed!"
           SLACK_COLOR: danger

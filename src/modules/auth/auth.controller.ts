@@ -39,7 +39,7 @@ export class AuthController {
     schema: {
       example: {
         id: "uuid-string",
-        email: "user@exampled.com",
+        email: "user@example.com",
         username: "johndoe",
         firstName: "John",
         lastName: "Doe",

@@ -33,13 +33,13 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
 
-  # NestJS Backend - Simple and reliable
+  # NestJS Backend - Fixed environment variables
   backend:
     image: node:18-alpine
     working_dir: /app
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-sugar_password}@postgres:5432/sugar_sack_counter?schema=public
+      DATABASE_URL: "postgresql://postgres:${DB_PASSWORD:-sugar_password}@postgres:5432/sugar_sack_counter?schema=public"
       JWT_SECRET: ${JWT_SECRET:-your-jwt-secret}
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
@@ -48,6 +48,7 @@ services:
       MINIO_BUCKET: sugar-sacks
       PORT: 3000
       CORS_ORIGIN: "*"
+      HOST: 0.0.0.0
     ports:
       - "3000:3000"
     volumes:
@@ -57,21 +58,34 @@ services:
         condition: service_healthy
     command: >
       sh -c "
-      # Install dependencies
-      echo 'Installing dependencies...' &&
-      npm install &&
+      # Install dependencies if node_modules doesn't exist
+      if [ ! -d 'node_modules' ]; then
+        echo 'Installing dependencies...' &&
+        npm install --no-audit --prefer-offline --progress=false
+      else
+        echo 'Using existing dependencies...'
+      fi &&
 
-      # Generate Prisma client
-      echo 'Generating Prisma client...' &&
-      npx prisma generate &&
+      # Generate Prisma client if not already generated
+      if [ ! -d 'node_modules/@prisma/client' ]; then
+        echo 'Generating Prisma client...' &&
+        npx prisma generate
+      else
+        echo 'Prisma client already generated...'
+      fi &&
 
-      # Build application
-      echo 'Building application...' &&
-      npm run build &&
+      # Build if dist directory doesn't exist
+      if [ ! -d 'dist' ]; then
+        echo 'Building application...' &&
+        npm run build
+      else
+        echo 'Using existing build...'
+      fi &&
 
-      # Start application
-      echo 'Starting application...' &&
-      node dist/main.js
+      # Start the application
+      echo 'Starting NestJS application on port 3000...' &&
+      echo 'DATABASE_URL: '$$DATABASE_URL &&
+      exec node dist/main.js
       "
     restart: unless-stopped
 

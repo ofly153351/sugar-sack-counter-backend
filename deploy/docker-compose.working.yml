@@ -32,39 +32,17 @@ services:
     restart: unless-stopped
 
   backend:
-    image: node:18-alpine
-    working_dir: /app
-
-    volumes:
-      - /opt/sugar-sack-counter/sugar-sack-counter-backend:/app
-
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: "postgresql://postgres:${DB_PASSWORD:-sugar_password}@postgres:5432/sugar_sack_counter?schema=public"
-      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret}
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      MINIO_BUCKET: sugar-sacks
-      PORT: 3000
-      HOST: 0.0.0.0
-
+    build:
+      context: /opt/sugar-sack-counter/sugar-sack-counter-backend
+      dockerfile: Dockerfile.prod
+    container_name: backend
     ports:
       - "3000:3000"
-
+    env_file:
+      - /opt/sugar-sack-counter/.env
     depends_on:
       postgres:
         condition: service_healthy
-
-    command: >
-      sh -c "
-      npm install &&
-      npx prisma generate &&
-      npm run build &&
-      node dist/main.js
-      "
-
     restart: unless-stopped
 
 volumes:

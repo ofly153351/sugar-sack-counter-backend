@@ -19,7 +19,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # MinIO Object Storage
+  # MinIO
   minio:
     image: minio/minio:latest
     environment:
@@ -33,7 +33,7 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
 
-  # NestJS Backend - Simple and reliable
+  # NestJS Backend
   backend:
     image: node:18-alpine
     working_dir: /app
@@ -52,19 +52,19 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ../:/app
+      - ./sugar-sack-counter-backend:/app
     depends_on:
       postgres:
         condition: service_healthy
     command: >
       sh -c "
-      echo 'Installing dependencies...' &&
-      npm install --no-audit --prefer-offline --progress=false &&
-      echo 'Generating Prisma client...' &&
+      echo '📦 Installing dependencies...' &&
+      npm install --omit=dev --no-audit --prefer-offline &&
+      echo '🔧 Generating Prisma client...' &&
       npx prisma generate &&
-      echo 'Building application...' &&
+      echo '🏗️ Building application...' &&
       npm run build &&
-      echo 'Starting application...' &&
+      echo '🚀 Starting application...' &&
       node dist/main.js
       "
     restart: unless-stopped

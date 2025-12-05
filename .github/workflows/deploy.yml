@@ -1,90 +1,90 @@
-name: Deploy Backend to DigitalOcean
+# name: Deploy Backend to DigitalOcean
 
-on:
-  push:
-    branches: [main, master]
+# on:
+#   push:
+#     branches: [main, master]
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Deploy to DigitalOcean via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.DO_HOST }}
-          username: ${{ secrets.DO_USERNAME }}
-          key: ${{ secrets.DO_SSH_KEY }}
-          port: ${{ secrets.DO_PORT }}
-          timeout: 30m # เพิ่ม timeout 30 นาที
-          script: |
-            echo "==> Switching to project directory"
-            cd /opt/sugar-sack-counter/sugar-sack-counter-backend
+#     steps:
+#       - name: Deploy to DigitalOcean via SSH
+#         uses: appleboy/ssh-action@v1.0.0
+#         with:
+#           host: ${{ secrets.DO_HOST }}
+#           username: ${{ secrets.DO_USERNAME }}
+#           key: ${{ secrets.DO_SSH_KEY }}
+#           port: ${{ secrets.DO_PORT }}
+#           timeout: 30m # เพิ่ม timeout 30 นาที
+#           script: |
+#             echo "==> Switching to project directory"
+#             cd /opt/sugar-sack-counter/sugar-sack-counter-backend
 
-            echo "==> Pulling latest code..."
-            git fetch --all
-            git reset --hard origin/main
+#             echo "==> Pulling latest code..."
+#             git fetch --all
+#             git reset --hard origin/main
 
-            echo "==> Writing environment variables..."
-            cat > .env << EOF
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/sugar_sack_counter?schema=public
-            NODE_ENV=production
-            PORT=3000
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
-            AI_SERVICE_URL=http://ai-service:8000
-            EOF
+#             echo "==> Writing environment variables..."
+#             cat > .env << EOF
+#             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+#             JWT_SECRET=${{ secrets.JWT_SECRET }}
+#             DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@postgres:5432/sugar_sack_counter?schema=public
+#             NODE_ENV=production
+#             PORT=3000
+#             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+#             AI_SERVICE_URL=http://ai-service:8000
+#             EOF
 
-            echo "==> Building backend Docker container (without touching Postgres/MinIO)..."
-            docker-compose -f deploy/docker-compose.working.yml build backend
+#             echo "==> Building backend Docker container (without touching Postgres/MinIO)..."
+#             docker-compose -f deploy/docker-compose.working.yml build backend
 
-            echo "==> Deploying backend container..."
-            docker-compose -f deploy/docker-compose.working.yml up -d backend
+#             echo "==> Deploying backend container..."
+#             docker-compose -f deploy/docker-compose.working.yml up -d backend
 
-            echo "==> Waiting for backend to be ready..."
-            sleep 10
+#             echo "==> Waiting for backend to be ready..."
+#             sleep 10
 
-            echo "==> Checking backend health..."
-            MAX_RETRIES=10
-            COUNT=0
-            until curl -f http://localhost:3000/api/health; do
-              COUNT=$((COUNT+1))
-              if [ $COUNT -ge $MAX_RETRIES ]; then
-                echo "Backend health check failed!"
-                exit 1
-              fi
-              echo "Backend not ready yet, retrying..."
-              sleep 5
-            done
+#             echo "==> Checking backend health..."
+#             MAX_RETRIES=10
+#             COUNT=0
+#             until curl -f http://localhost:3000/api/health; do
+#               COUNT=$((COUNT+1))
+#               if [ $COUNT -ge $MAX_RETRIES ]; then
+#                 echo "Backend health check failed!"
+#                 exit 1
+#               fi
+#               echo "Backend not ready yet, retrying..."
+#               sleep 5
+#             done
 
-            echo "==> Running Prisma db push..."
-            docker-compose -f deploy/docker-compose.working.yml exec backend npx prisma db push
+#             echo "==> Running Prisma db push..."
+#             docker-compose -f deploy/docker-compose.working.yml exec backend npx prisma db push
 
-            echo "Backend deployment completed successfully!"
+#             echo "Backend deployment completed successfully!"
 
-  notify:
-    needs: deploy
-    runs-on: ubuntu-latest
-    if: always()
+#   notify:
+#     needs: deploy
+#     runs-on: ubuntu-latest
+#     if: always()
 
-    steps:
-      - name: Slack Success Notification
-        if: success()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: deployments
-          SLACK_TITLE: "✅ Backend Deployment Successful"
-          SLACK_MESSAGE: "Backend deployed successfully to DigitalOcean"
-          SLACK_COLOR: good
+#     steps:
+#       - name: Slack Success Notification
+#         if: success()
+#         uses: rtCamp/action-slack-notify@v2
+#         env:
+#           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+#           SLACK_CHANNEL: deployments
+#           SLACK_TITLE: "✅ Backend Deployment Successful"
+#           SLACK_MESSAGE: "Backend deployed successfully to DigitalOcean"
+#           SLACK_COLOR: good
 
-      - name: Slack Failure Notification
-        if: failure()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: deployments
-          SLACK_TITLE: "❌ Backend Deployment Failed"
-          SLACK_MESSAGE: "Backend deployment failed!"
-          SLACK_COLOR: danger
+#       - name: Slack Failure Notification
+#         if: failure()
+#         uses: rtCamp/action-slack-notify@v2
+#         env:
+#           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+#           SLACK_CHANNEL: deployments
+#           SLACK_TITLE: "❌ Backend Deployment Failed"
+#           SLACK_MESSAGE: "Backend deployment failed!"
+#           SLACK_COLOR: danger

@@ -19,27 +19,33 @@ jobs:
             cd /opt/sugar-sack-counter/sugar-sack-counter-backend
 
             # 1. Stop current PM2
-            echo "Stopping PM2..."
+            echo "🛑 Stopping PM2..."
             pm2 stop sugar-sack-backend 2>/dev/null || true
             pm2 delete sugar-sack-backend 2>/dev/null || true
 
             # 2. Pull latest code
-            echo "Pulling code..."
+            echo "📥 Pulling code..."
             git pull origin main
 
-            # 3. Install with legacy-peer-deps
-            echo "Installing dependencies..."
-            npm ci --legacy-peer-deps --only=production
+            # 3. Install ALL dependencies (include dev)
+            echo "📦 Installing dependencies..."
+            npm ci --legacy-peer-deps  # ไม่ใช้ --only=production
 
             # 4. Build
-            echo "Building..."
+            echo "🔨 Building..."
             npm run build
 
-            # 5. Start with PM2
-            echo "Starting PM2..."
+            # 5. Check if build successful
+            if [ ! -f "dist/main.js" ]; then
+              echo "❌ Build failed: dist/main.js not found"
+              exit 1
+            fi
+
+            # 6. Start with PM2
+            echo "🚀 Starting PM2..."
             pm2 start dist/main.js --name sugar-sack-backend
 
-            # 6. Check status
-            echo "Checking..."
+            # 7. Check status
+            echo "✅ Checking..."
             sleep 3
             pm2 status

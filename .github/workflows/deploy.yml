@@ -1,4 +1,4 @@
-name: Deploy Backend to VPS
+name: Deploy Backend
 
 on:
   push:
@@ -8,66 +8,38 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VPS
+      - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
-          port: 22
+          port: ${{ secrets.SSH_PORT || 22 }}
           script: |
-            echo "=== Starting Deployment ==="
-
             cd /opt/sugar-sack-counter/sugar-sack-counter-backend
 
-            echo "📥 Pulling latest code..."
-            git fetch --all
-            git reset --hard origin/main
+            # 1. Stop current PM2
+            echo "Stopping PM2..."
+            pm2 stop sugar-sack-backend 2>/dev/null || true
+            pm2 delete sugar-sack-backend 2>/dev/null || true
 
-            echo "📦 Installing dependencies with legacy-peer-deps..."
+            # 2. Pull latest code
+            echo "Pulling code..."
+            git pull origin main
+
+            # 3. Install with legacy-peer-deps
+            echo "Installing dependencies..."
             npm ci --legacy-peer-deps --only=production
 
-            echo "🔨 Building project..."
+            # 4. Build
+            echo "Building..."
             npm run build
 
-            echo "🗄️ Running Prisma migrations (if any)..."
-            npx prisma db push 2>/dev/null || echo "No Prisma setup found"
+            # 5. Start with PM2
+            echo "Starting PM2..."
+            pm2 start dist/main.js --name sugar-sack-backend
 
-            echo "🔄 Restarting PM2 process..."
-            pm2 restart sugar-sack-backend --update-env
-
-            echo "⏳ Waiting for app to start..."
-            sleep 10
-
-            echo "🏥 Checking application health..."
-
-            # Health check with retries
-            MAX_RETRIES=15
-            COUNT=0
-            while [ $COUNT -lt $MAX_RETRIES ]; do
-              if curl -s -f http://localhost:3001/api/health > /dev/null 2>&1; then
-                echo "✅ Health check passed!"
-                echo "=== Deployment Successful ==="
-                exit 0
-              fi
-
-              COUNT=$((COUNT+1))
-              echo "⏳ Attempt $COUNT/$MAX_RETRIES - Waiting for app to start..."
-
-              # Check PM2 logs
-              pm2 logs sugar-sack-backend --lines 3 --nostream 2>/dev/null || true
-
-              sleep 5
-            done
-
-            echo "❌ Health check failed after $MAX_RETRIES attempts"
-            echo "📋 Checking application status..."
-
-            # Debug information
-            echo "=== DEBUG INFO ==="
+            # 6. Check status
+            echo "Checking..."
+            sleep 3
             pm2 status
-            pm2 logs sugar-sack-backend --lines 20 --nostream 2>/dev/null || true
-            netstat -tlnp | grep :3001 || echo "Port 3001 not listening"
-            ps aux | grep node | grep -v grep || echo "No node process found"
-
-            exit 1

@@ -34,11 +34,37 @@ async function bootstrap() {
   );
 
   // Enable CORS with credentials for cookie support
+  // src/main.ts
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://activitiesmanagement.online",
+    "https://www.activitiesmanagement.online",
+  ];
+
   app.enableCors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: function (origin, callback) {
+      // อนุญาต requests ที่ไม่มี origin (เช่น mobile apps, curl, postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cookie",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+      "Access-Control-Allow-Headers",
+    ],
+    exposedHeaders: ["Set-Cookie", "Authorization"],
   });
 
   // Swagger configuration

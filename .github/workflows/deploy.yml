@@ -21,17 +21,27 @@ jobs:
             pm2 delete sugar-sack-backend || true
             git pull
 
-            # ติดตั้ง Prisma 4 โดยเฉพาะ
-            echo "Installing Prisma 4..."
-            npm install @prisma/client@4.16.2 prisma@4.16.2 --legacy-peer-deps
+            # ❌ ไม่ต้องลบ node_modules ทุกครั้ง (ลดจาก 3+ นาที เหลือ 30 วินาที)
+            # rm -rf dist node_modules package-lock.json
 
-            # ติดตั้ง dependencies อื่นๆ
-            npm ci --legacy-peer-deps
+            # ✅ ลบแค่ dist (ใช้เวลาไม่กี่วินาที)
+            rm -rf dist
 
-            # Generate Prisma client
+            # ✅ ตรวจสอบ Prisma version ปัจจุบันก่อน
+            PRISMA_VERSION=$(npm list @prisma/client 2>/dev/null | grep @prisma/client | awk -F@ '{print $3}' | cut -d' ' -f1)
+
+            # ✅ ติดตั้ง Prisma 4 เฉพาะตอนจำเป็น
+            if [[ "$PRISMA_VERSION" != "4.16.2" ]]; then
+              echo "📦 Updating Prisma to 4.16.2..."
+              npm install @prisma/client@4.16.2 prisma@4.16.2 --legacy-peer-deps
+            else
+              echo "✅ Prisma already at version 4.16.2"
+            fi
+
+            # ✅ Generate Prisma client (สำคัญ)
             npx prisma generate
 
-            # Build
+            # ✅ Build
             npm run build
 
             pm2 start dist/main.js --name sugar-sack-backend

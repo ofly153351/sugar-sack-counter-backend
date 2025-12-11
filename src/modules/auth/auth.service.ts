@@ -132,54 +132,108 @@ export class AuthService {
       path: "/",
     };
 
-    // Determine if this is a localhost origin
+    // Check if this is a localhost origin (more precise detection)
     const isLocalhostOrigin =
       origin &&
-      (origin.includes("localhost") ||
-        origin.includes("127.0.0.1") ||
-        origin.includes("::1"));
+      (origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:") ||
+        origin.includes("localhost:3000") || // frontend localhost
+        origin.includes("localhost:3001")); // backend localhost
 
-    // Determine if this is a secure (HTTPS) origin
-    const isSecureOrigin = origin && origin.startsWith("https://");
+    // Check if this is HTTPS production domain
+    const isProductionDomain =
+      origin &&
+      (origin.startsWith("https://activitiesmanagement.online") ||
+        origin.startsWith("https://www.activitiesmanagement.online"));
 
-    // Configure secure flag
-    if (isProduction && !allowLocalhost && !isLocalhostOrigin) {
-      // Production with non-localhost origin: require secure cookies
-      options.secure = true;
-    } else if (isLocalhostOrigin) {
-      // Localhost origin: cookies can be non-secure
+    // ⭐️ LOGIC FOR CROSS-ORIGIN COOKIES ⭐️
+    if (isLocalhostOrigin && isProduction) {
+      // ⚠️ Localhost → Production (Cross-origin)
+      // This is the problematic case! Browser restrictions apply
+
+      // For cross-origin localhost → production, we need special handling
+      // Modern browsers require sameSite=none AND secure=true for cross-origin
+      // But localhost HTTP can't use secure=true
+
+      // Solution 1: Use lax with secure=false (may not work cross-origin)
+      // Solution 2: Don't set domain, use lax (better for localhost)
       options.secure = false;
-    } else if (isSecureOrigin) {
-      // HTTPS origin in production: secure cookies
-      options.secure = true;
-    } else {
-      // Default: follow NODE_ENV
-      options.secure = isProduction;
-    }
+      options.sameSite = "lax";
 
-    // Configure sameSite policy
-    if (isLocalhostOrigin) {
-      // For localhost development, use 'lax' or 'none' with secure=false
-      options.sameSite = "lax";
-    } else if (isProduction && !isLocalhostOrigin) {
-      // Production with non-localhost: use 'lax' for better security
-      options.sameSite = "lax";
-    } else {
-      // Default: 'lax'
-      options.sameSite = "lax";
-    }
+      // ⚠️ IMPORTANT: Don't set domain for localhost cookies
+      // Setting domain will restrict cookie to that domain only
+      // options.domain = undefined; // Explicitly don't set
 
-    // Set domain if configured
-    if (cookieDomain) {
-      options.domain = cookieDomain;
-    } else if (isProduction && !isLocalhostOrigin && origin) {
-      // Auto-set domain from origin in production
-      try {
-        const url = new URL(origin);
-        options.domain = url.hostname;
-      } catch (error) {
-        // Invalid URL, skip domain setting
+      // Log for debugging
+      if (
+        process.env.NODE_ENV === "development" ||
+        process.env.LOG_COOKIE_SETTINGS === "true"
+      ) {
+        console.log(
+          "🍪 Cross-origin cookie settings (localhost → production):",
+          {
+            origin,
+            secure: options.secure,
+            sameSite: options.sameSite,
+            domain: "not set",
+            note: "Using lax with secure=false for localhost HTTP",
+          },
+        );
       }
+    } else if (isLocalhostOrigin && !isProduction) {
+      // Localhost → Localhost (Same-origin development)
+      options.secure = false;
+      options.sameSite = "lax";
+    } else if (isProductionDomain) {
+      // Production domain → Production domain (Same-origin production)
+      options.secure = true;
+      options.sameSite = "lax";
+
+      // Set domain for production cookies
+      if (cookieDomain) {
+        options.domain = cookieDomain;
+      } else {
+        // Auto-set domain from origin
+        try {
+          const url = new URL(origin);
+          options.domain = url.hostname;
+        } catch (error) {
+          // Invalid URL, skip domain setting
+        }
+      }
+    } else if (isProduction && !isLocalhostOrigin) {
+      // Other production origins (e.g., other domains)
+      options.secure = true;
+      options.sameSite = "lax";
+
+      if (cookieDomain) {
+        options.domain = cookieDomain;
+      }
+    } else {
+      // Default fallback
+      options.secure = isProduction;
+      options.sameSite = "lax";
+    }
+
+    // Debug logging
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.LOG_COOKIE_SETTINGS === "true"
+    ) {
+      console.log("🍪 Final cookie options:", {
+        origin,
+        isProduction,
+        isLocalhostOrigin,
+        isProductionDomain,
+        options: {
+          httpOnly: options.httpOnly,
+          secure: options.secure,
+          sameSite: options.sameSite,
+          maxAge: options.maxAge,
+          path: options.path,
+          domain: options.domain || "not set",
+        },
+      });
     }
 
     return options;

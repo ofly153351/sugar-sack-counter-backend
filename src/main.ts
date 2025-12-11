@@ -34,13 +34,10 @@ async function bootstrap() {
   );
 
   // Enable CORS with credentials for cookie support
-  // src/main.ts
-  const allowedOrigins = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "https://activitiesmanagement.online",
-    "https://www.activitiesmanagement.online",
-  ];
+  // Read allowed origins from environment variable
+  const corsOrigins =
+    process.env.CORS_ORIGIN || "http://localhost:3000,http://localhost:3001";
+  const allowedOrigins = corsOrigins.split(",").map((origin) => origin.trim());
 
   app.enableCors({
     origin: function (origin, callback) {

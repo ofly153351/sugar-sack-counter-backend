@@ -168,22 +168,31 @@ export class AuthController {
       example: {
         message: "Cookie test successful",
         cookieSet: true,
+        cookieOptions: {},
       },
     },
   })
-  async testCookie(@Res() response: Response) {
-    // Set a test cookie
-    response.cookie("test_cookie", "test_value", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      path: "/",
-    });
+  async testCookie(@Request() req, @Res() response: Response) {
+    // Get origin from request headers
+    const origin = req.headers?.origin;
+
+    // Get dynamic cookie options based on origin
+    const cookieOptions = this.authService.getCookieOptions(origin);
+
+    // Set a test cookie with dynamic options
+    response.cookie("test_cookie", "test_value", cookieOptions);
 
     return response.json({
       message: "Cookie test successful",
       cookieSet: true,
+      cookieOptions: {
+        httpOnly: cookieOptions.httpOnly,
+        secure: cookieOptions.secure,
+        sameSite: cookieOptions.sameSite,
+        maxAge: cookieOptions.maxAge,
+        path: cookieOptions.path,
+        domain: cookieOptions.domain || "not set",
+      },
     });
   }
 

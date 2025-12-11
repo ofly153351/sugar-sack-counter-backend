@@ -37,6 +37,19 @@ export class AuthService {
 
     // Get request origin for dynamic cookie configuration
     const origin = response.req?.headers?.origin;
+
+    // Debug logging
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.LOG_AUTH === "true"
+    ) {
+      console.log("🔐 Login request origin:", origin);
+      console.log(
+        "🔐 Setting cookie with options:",
+        this.getCookieOptions(origin),
+      );
+    }
+
     // Set HTTP-only cookie with dynamic options based on origin
     response.cookie("access_token", token, this.getCookieOptions(origin));
 
@@ -48,6 +61,7 @@ export class AuthService {
         firstName: userWithRole.profile?.firstName,
         lastName: userWithRole.profile?.lastName,
       },
+      token: token, // ⭐️ ส่ง token กลับใน response body สำหรับ frontend
     };
   }
 
@@ -75,6 +89,19 @@ export class AuthService {
 
     // Get request origin for dynamic cookie configuration
     const origin = response.req?.headers?.origin;
+
+    // Debug logging
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.LOG_AUTH === "true"
+    ) {
+      console.log("🔐 Register request origin:", origin);
+      console.log(
+        "🔐 Setting cookie with options:",
+        this.getCookieOptions(origin),
+      );
+    }
+
     // Set HTTP-only cookie with dynamic options based on origin
     response.cookie("access_token", token, this.getCookieOptions(origin));
 
@@ -86,6 +113,7 @@ export class AuthService {
         firstName: userWithRole.profile?.firstName,
         lastName: userWithRole.profile?.lastName,
       },
+      token: token, // ⭐️ ส่ง token กลับใน response body สำหรับ frontend
     };
   }
 
@@ -102,11 +130,25 @@ export class AuthService {
 
     // Get request origin for dynamic cookie configuration
     const origin = response.req?.headers?.origin;
+
+    // Debug logging
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.LOG_AUTH === "true"
+    ) {
+      console.log("🔐 Refresh token request origin:", origin);
+      console.log(
+        "🔐 Setting cookie with options:",
+        this.getCookieOptions(origin),
+      );
+    }
+
     // Set HTTP-only cookie with dynamic options based on origin
     response.cookie("access_token", token, this.getCookieOptions(origin));
 
     return {
       message: "Token refreshed successfully",
+      token: token, // ⭐️ ส่ง token กลับใน response body สำหรับ frontend
     };
   }
 
@@ -149,25 +191,19 @@ export class AuthService {
     // ⭐️ LOGIC FOR CROSS-ORIGIN COOKIES ⭐️
     if (isLocalhostOrigin && isProduction) {
       // ⚠️ Localhost → Production (Cross-origin)
-      // This is the problematic case! Browser restrictions apply
-
-      // For cross-origin localhost → production, we need special handling
-      // Modern browsers require sameSite=none AND secure=true for cross-origin
-      // But localhost HTTP can't use secure=true
-
-      // Solution 1: Use lax with secure=false (may not work cross-origin)
-      // Solution 2: Don't set domain, use lax (better for localhost)
-      options.secure = false;
+      // For localhost development accessing production backend
+      options.secure = false; // Localhost uses HTTP
       options.sameSite = "lax";
 
-      // ⚠️ IMPORTANT: Don't set domain for localhost cookies
-      // Setting domain will restrict cookie to that domain only
+      // ⭐️ สำคัญ: ไม่ตั้ง domain สำหรับ localhost
+      // ให้ cookie ใช้ได้กับทุก domain
       // options.domain = undefined; // Explicitly don't set
 
       // Log for debugging
       if (
         process.env.NODE_ENV === "development" ||
-        process.env.LOG_COOKIE_SETTINGS === "true"
+        process.env.LOG_COOKIE_SETTINGS === "true" ||
+        process.env.LOG_AUTH === "true"
       ) {
         console.log(
           "🍪 Cross-origin cookie settings (localhost → production):",
@@ -175,8 +211,9 @@ export class AuthService {
             origin,
             secure: options.secure,
             sameSite: options.sameSite,
-            domain: "not set",
+            domain: "not set (for localhost compatibility)",
             note: "Using lax with secure=false for localhost HTTP",
+            warning: "Browser may block cross-origin cookies with sameSite=lax",
           },
         );
       }
@@ -184,6 +221,7 @@ export class AuthService {
       // Localhost → Localhost (Same-origin development)
       options.secure = false;
       options.sameSite = "lax";
+      // ไม่ตั้ง domain สำหรับ localhost development
     } else if (isProductionDomain) {
       // Production domain → Production domain (Same-origin production)
       options.secure = true;
@@ -218,7 +256,8 @@ export class AuthService {
     // Debug logging
     if (
       process.env.NODE_ENV === "development" ||
-      process.env.LOG_COOKIE_SETTINGS === "true"
+      process.env.LOG_COOKIE_SETTINGS === "true" ||
+      process.env.LOG_AUTH === "true"
     ) {
       console.log("🍪 Final cookie options:", {
         origin,
@@ -233,6 +272,10 @@ export class AuthService {
           path: options.path,
           domain: options.domain || "not set",
         },
+        recommendation:
+          isLocalhostOrigin && isProduction
+            ? "Consider using Authorization header instead of cookies for localhost→production"
+            : "OK",
       });
     }
 

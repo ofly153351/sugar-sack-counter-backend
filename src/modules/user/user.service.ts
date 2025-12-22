@@ -108,15 +108,30 @@ export class UserService {
 
   async findAll() {
     const users = await this.database.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        profile: true,
+        role: true,
       },
     });
-    return users;
+
+    // Remove passwords from response and format the data
+    return users.map((user) => {
+      const { password, ...userWithoutPassword } = user;
+      return {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        firstName: user.profile?.firstName || null,
+        lastName: user.profile?.lastName || null,
+        title: user.profile?.title || null,
+        position: user.profile?.position || null,
+        phone: user.profile?.phone || null,
+        employeeCode: user.profile?.employeeCode || null,
+        role: user.role?.name || null,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+    });
   }
 
   async findOne(id: string) {
@@ -132,7 +147,22 @@ export class UserService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    return user;
+    // Format response similar to findAll method
+    const { password, ...userWithoutPassword } = user;
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      firstName: user.profile?.firstName || null,
+      lastName: user.profile?.lastName || null,
+      title: user.profile?.title || null,
+      position: user.profile?.position || null,
+      phone: user.profile?.phone || null,
+      employeeCode: user.profile?.employeeCode || null,
+      role: user.role?.name || null,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
   async findUserWithRole(id: string) {
@@ -166,22 +196,23 @@ export class UserService {
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.database.user.findUnique({
       where: { id },
+      include: {
+        profile: true,
+      },
     });
 
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    const updateData: any = { ...updateUserDto };
+    // Separate user data from profile data
+    const { firstName, lastName, employeeCode, phone, title, ...userData } =
+      updateUserDto;
 
-    // If password is being updated, hash it
-    if (updateUserDto.password) {
-      updateData.password = await bcrypt.hash(updateUserDto.password, 12);
-    }
-
+    // Update user table
     const updatedUser = await this.database.user.update({
       where: { id },
-      data: updateData,
+      data: userData,
       select: {
         id: true,
         email: true,
@@ -191,7 +222,92 @@ export class UserService {
       },
     });
 
-    return updatedUser;
+    // Get updated user with profile
+    const userWithProfile = await this.database.user.findUnique({
+      where: { id },
+      include: {
+        profile: true,
+        role: true,
+      },
+    });
+
+    // Update user profile if profile fields are provided
+    if (firstName || lastName || employeeCode || phone || title) {
+      const profileUpdateData: any = {};
+
+      if (firstName !== undefined) profileUpdateData.firstName = firstName;
+      if (lastName !== undefined) profileUpdateData.lastName = lastName;
+      if (employeeCode !== undefined)
+        profileUpdateData.employeeCode = employeeCode;
+      if (phone !== undefined) profileUpdateData.phone = phone;
+      if (title !== undefined) profileUpdateData.title = title;
+
+      // Check for duplicate phone number if phone is being updated
+      if (phone && phone !== user.profile?.phone) {
+        const existingUserWithPhone = await this.database.userProfile.findFirst(
+          {
+            where: { phone },
+          },
+        );
+
+        if (existingUserWithPhone) {
+          throw new ConflictException("Phone number already exists");
+        }
+      }
+
+      // Check for duplicate employee code if employeeCode is being updated
+      if (employeeCode && employeeCode !== user.profile?.employeeCode) {
+        const existingUserWithEmployeeCode =
+          await this.database.userProfile.findFirst({
+            where: { employeeCode },
+          });
+
+        if (existingUserWithEmployeeCode) {
+          throw new ConflictException("Employee code already exists");
+        }
+      }
+
+      // Update or create profile
+      if (user.profile) {
+        await this.database.userProfile.update({
+          where: { userId: id },
+          data: profileUpdateData,
+        });
+      } else {
+        await this.database.userProfile.create({
+          data: {
+            userId: id,
+            firstName: firstName || "Unknown",
+            lastName: lastName || "User",
+            title: title || "",
+            position: "User",
+            phone: phone || null,
+            employeeCode: employeeCode || null,
+            ...profileUpdateData,
+          },
+        });
+      }
+    }
+
+    // Format response similar to findOne method
+    if (!userWithProfile) {
+      return updatedUser;
+    }
+
+    return {
+      id: userWithProfile.id,
+      email: userWithProfile.email,
+      username: userWithProfile.username,
+      firstName: userWithProfile.profile?.firstName || null,
+      lastName: userWithProfile.profile?.lastName || null,
+      title: userWithProfile.profile?.title || null,
+      position: userWithProfile.profile?.position || null,
+      phone: userWithProfile.profile?.phone || null,
+      employeeCode: userWithProfile.profile?.employeeCode || null,
+      role: userWithProfile.role?.name || null,
+      createdAt: userWithProfile.createdAt,
+      updatedAt: userWithProfile.updatedAt,
+    };
   }
 
   async remove(id: string) {

@@ -13,9 +13,45 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: (req) => {
         let token = null;
+        let tokenSource = "unknown";
+
         if (req && req.cookies) {
           token = req.cookies["access_token"];
+          if (token) {
+            tokenSource = "cookies";
+          }
         }
+
+        // 2. Check from Cookie header (for frontend middleware)
+        if (!token && req && req.headers && req.headers.cookie) {
+          const cookies = req.headers.cookie.split(";").map((c) => c.trim());
+          for (const cookie of cookies) {
+            if (cookie.startsWith("access_token=")) {
+              token = cookie.substring("access_token=".length);
+              tokenSource = "cookie-header";
+              break;
+            }
+          }
+        }
+
+        // 3. Check from Authorization header (Bearer token)
+        if (!token && req && req.headers && req.headers.authorization) {
+          const authHeader = req.headers.authorization;
+          if (authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7); // Remove "Bearer " prefix
+            tokenSource = "authorization-header";
+          }
+        }
+
+        // Debug logging
+        if (process.env.NODE_ENV === "development") {
+          // console.log(`🔑 JWT Token Extraction:`);
+          // console.log(`   Source: ${tokenSource}`);
+          // console.log(`   Token exists: ${!!token}`);
+          // console.log(`   Headers:`, req?.headers);
+          // console.log(`   Cookies:`, req?.cookies);
+        }
+
         return token;
       },
       ignoreExpiration: false,

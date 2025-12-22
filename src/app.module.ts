@@ -7,6 +7,10 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { AiDetectorModule } from "./modules/ai-detector/ai-detector.module";
 import { CountingSessionModule } from "./modules/counting-session/counting-session.module";
+import { VehicleModule } from "./modules/vehicle/vehicle.module";
+import { VehicleTypeModule } from "./modules/vehicle-type/vehicle-type.module";
+import { SugarTypeModule } from "./modules/sugar-type/sugar-type.module";
+import { SackRowModule } from "./modules/sack-row/sack-row.module";
 import { DatabaseModule } from "./database/database.module";
 import appConfig from "./config/app.config";
 
@@ -22,6 +26,10 @@ import appConfig from "./config/app.config";
     AdminModule,
     AiDetectorModule,
     CountingSessionModule,
+    VehicleModule,
+    VehicleTypeModule,
+    SugarTypeModule,
+    SackRowModule,
   ],
   controllers: [AppController],
   providers: [AppService],

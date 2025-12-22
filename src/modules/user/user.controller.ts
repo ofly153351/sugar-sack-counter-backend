@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Request,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -100,6 +101,41 @@ export class UserController {
     return this.userService.findAll();
   }
 
+  @Get("me")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({
+    summary: "ดึงข้อมูลผู้ใช้งานปัจจุบัน",
+    description: "ดึงข้อมูลผู้ใช้งานที่ล็อกอินอยู่ปัจจุบัน",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "ดึงข้อมูลสำเร็จ",
+    schema: {
+      example: {
+        id: "uuid-string",
+        email: "user@example.com",
+        username: "johndoe",
+        firstName: "John",
+        lastName: "Doe",
+        title: "Mr.",
+        position: "User",
+        phone: "0923322145",
+        employeeCode: "EMP001",
+        role: "user",
+        createdAt: "2024-01-01T00:00:00.000Z",
+        updatedAt: "2024-01-01T00:00:00.000Z",
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "ไม่มีสิทธิ์เข้าถึง",
+  })
+  getCurrentUser(@Request() req) {
+    return this.userService.findOne(req.user.id);
+  }
+
   @Get(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth("JWT-auth")
@@ -142,7 +178,7 @@ export class UserController {
   @ApiBearerAuth("JWT-auth")
   @ApiOperation({
     summary: "อัพเดทข้อมูลผู้ใช้งาน",
-    description: "อัพเดทข้อมูลผู้ใช้งานตาม ID",
+    description: "อัพเดทข้อมูลผู้ใช้งานตาม ID (ไม่สามารถอัพเดทรหัสผ่านได้)",
   })
   @ApiParam({
     name: "id",
@@ -157,9 +193,16 @@ export class UserController {
       example: {
         id: "uuid-string",
         email: "updated@example.com",
-        name: "Updated Name",
+        username: "johndoe",
+        firstName: "John",
+        lastName: "Doe",
+        title: "Mr.",
+        position: "User",
+        phone: "0923322145",
+        employeeCode: "EMP001",
         role: "user",
-        updated_at: "2024-01-01T00:00:00.000Z",
+        createdAt: "2024-01-01T00:00:00.000Z",
+        updatedAt: "2024-01-02T00:00:00.000Z",
       },
     },
   })

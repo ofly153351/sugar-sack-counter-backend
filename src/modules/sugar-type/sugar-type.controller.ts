@@ -182,7 +182,8 @@ export class SugarTypeController {
   @ApiBearerAuth("JWT-auth")
   @ApiOperation({
     summary: "ดึงข้อมูลประเภทน้ำตาลพร้อมเซสชันที่เกี่ยวข้อง",
-    description: "ดึงข้อมูลประเภทน้ำตาลพร้อมรายการเซสชันการนับทั้งหมดที่ใช้ประเภทนี้",
+    description:
+      "ดึงข้อมูลประเภทน้ำตาลพร้อมรายการเซสชันการนับทั้งหมดที่ใช้ประเภทนี้",
   })
   @ApiParam({
     name: "id",
@@ -200,8 +201,6 @@ export class SugarTypeController {
         sackSessions: [
           {
             id: "session-uuid",
-            totalSacks: 100,
-            totalWeight: 5000,
             countingDate: "2024-01-01T10:00:00.000Z",
             status: "completed",
             vehicle: {

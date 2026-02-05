@@ -1,9 +1,9 @@
-import { IsString, IsNumber, IsOptional, IsEnum } from "class-validator";
+import { IsString, IsNumber, IsOptional } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
-export class CreateSackRowDto {
+export class CreateBoxRowDto {
   @ApiProperty({
-    description: "ID of the sack counting session",
+    description: "ID of the box counting session",
     example: "uuid-string",
   })
   @IsString()
@@ -15,15 +15,6 @@ export class CreateSackRowDto {
   })
   @IsNumber()
   rowNumber: number;
-
-  @ApiProperty({
-    description: "Type of weight measurement",
-    enum: ["50kg", "100kg", "custom"],
-    example: "50kg",
-  })
-  @IsString()
-  @IsEnum(["50kg", "100kg", "custom"])
-  weightType: string;
 
   @ApiPropertyOptional({
     description: "AI detected count (optional)",
@@ -42,7 +33,7 @@ export class CreateSackRowDto {
 
   @ApiPropertyOptional({
     description: "Path to the original image file (optional)",
-    example: "uploads/sacks/session-uuid/row-1.jpg",
+    example: "uploads/boxes/session-uuid/row-1.jpg",
   })
   @IsOptional()
   @IsString()
@@ -50,7 +41,7 @@ export class CreateSackRowDto {
 
   @ApiPropertyOptional({
     description: "Path to the annotated image file (optional)",
-    example: "uploads/sacks/session-uuid/row-1_annotated.jpg",
+    example: "uploads/boxes/session-uuid/row-1_annotated.jpg",
   })
   @IsOptional()
   @IsString()

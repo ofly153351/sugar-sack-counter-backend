@@ -202,12 +202,8 @@ export class SackRowService {
     });
 
     // Reset session totals
-    await this.prisma.sackCountingSession.update({
-      where: { id: sessionId },
-      data: {
-        totalSacks: 0,
-      },
-    });
+    // totalSacks field has been removed from schema
+    // No need to update it anymore
 
     return { message: "All sack rows deleted successfully" };
   }
@@ -223,15 +219,10 @@ export class SackRowService {
 
     const totalSacks = result._sum.finalCount || 0;
 
-    // Update the session
-    await this.prisma.sackCountingSession.update({
-      where: { id: sessionId },
-      data: {
-        totalSacks,
-      },
-    });
+    // totalSacks field has been removed from schema
+    // No need to update it in sackCountingSession anymore
 
-    // Also update the related CountingSession if it exists
+    // Update counting session if applicable
     const countingSession = await this.prisma.countingSession.findFirst({
       where: { sackSessionId: sessionId },
     });
@@ -244,6 +235,8 @@ export class SackRowService {
         },
       });
     }
+
+    return totalSacks;
   }
   async createByCountingSession(
     createSackRowByCountingSessionDto: CreateSackRowByCountingSessionDto,

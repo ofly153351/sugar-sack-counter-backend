@@ -6,6 +6,8 @@ import {
 import { DatabaseService } from "../../database/database.service";
 import { CreateCountingSessionDto } from "./dto/create-counting-session.dto";
 import { UpdateCountingSessionDto } from "./dto/update-counting-session.dto";
+import { plainToInstance } from "class-transformer";
+import { CountingSessionResponseDto } from "./dto/counting-session-response.dto";
 
 @Injectable()
 export class CountingSessionService {
@@ -48,9 +50,8 @@ export class CountingSessionService {
       );
     }
 
-    // Validate session type and corresponding ID (make them optional for initial creation)
+    // Validate session type and corresponding ID
     if (sessionType === "sack" && sackSessionId) {
-      // If sackSessionId is provided, validate it exists
       const sackSession = await this.prisma.sackCountingSession.findUnique({
         where: { id: sackSessionId },
       });
@@ -62,7 +63,6 @@ export class CountingSessionService {
     }
 
     if (sessionType === "box" && boxSessionId) {
-      // If boxSessionId is provided, validate it exists
       const boxSession = await this.prisma.boxCountingSession.findUnique({
         where: { id: boxSessionId },
       });
@@ -90,8 +90,6 @@ export class CountingSessionService {
           vehicleId,
           sugarTypeId,
           userId,
-          totalSacks: data.totalCount || 0,
-          totalWeight: data.totalWeight || 0,
           countingDate: data.countingDate
             ? new Date(data.countingDate)
             : new Date(),
@@ -109,25 +107,7 @@ export class CountingSessionService {
           sugarTypeId,
           ...data,
         },
-        include: {
-          user: {
-            include: {
-              profile: true,
-            },
-          },
-          vehicle: true,
-          sugarType: true,
-          sackSession: {
-            include: {
-              sackRows: true,
-            },
-          },
-          boxSession: {
-            include: {
-              boxRows: true,
-            },
-          },
-        },
+        include: this.getSessionInclude(),
       });
     } else if (sessionType === "box" && !boxSessionId) {
       // Create box counting session automatically
@@ -136,7 +116,6 @@ export class CountingSessionService {
           vehicleId,
           sugarTypeId,
           userId,
-          totalBoxes: data.totalCount || 0,
           countingDate: data.countingDate
             ? new Date(data.countingDate)
             : new Date(),
@@ -154,25 +133,7 @@ export class CountingSessionService {
           sugarTypeId,
           ...data,
         },
-        include: {
-          user: {
-            include: {
-              profile: true,
-            },
-          },
-          vehicle: true,
-          sugarType: true,
-          sackSession: {
-            include: {
-              sackRows: true,
-            },
-          },
-          boxSession: {
-            include: {
-              boxRows: true,
-            },
-          },
-        },
+        include: this.getSessionInclude(),
       });
     } else {
       // Create counting session with existing sack/box session ID
@@ -186,123 +147,83 @@ export class CountingSessionService {
           sugarTypeId,
           ...data,
         },
-        include: {
-          user: {
-            include: {
-              profile: true,
-            },
-          },
-          vehicle: true,
-          sugarType: true,
-          sackSession: {
-            include: {
-              sackRows: true,
-            },
-          },
-          boxSession: {
-            include: {
-              boxRows: true,
-            },
-          },
-        },
+        include: this.getSessionInclude(),
       });
     }
 
-    return createdCountingSession;
+    // Transform to exclude sensitive data
+    return plainToInstance(CountingSessionResponseDto, createdCountingSession);
   }
 
   async findAll() {
-    return this.prisma.countingSession.findMany({
-      include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
-        vehicle: true,
-        sugarType: true,
-        sackSession: {
-          include: {
-            sackRows: true,
-          },
-        },
-        boxSession: {
-          include: {
-            boxRows: true,
-          },
-        },
-      },
+    const sessions = await this.prisma.countingSession.findMany({
+      include: this.getSessionInclude(),
       orderBy: {
         countingDate: "desc",
       },
     });
+
+    // Transform to exclude sensitive data
+    return plainToInstance(CountingSessionResponseDto, sessions);
+  }
+
+  async findBySessionType(sessionType: string) {
+    if (!["sack", "box"].includes(sessionType)) {
+      throw new BadRequestException(
+        `Invalid session type: ${sessionType}. Must be either "sack" or "box"`,
+      );
+    }
+
+    const sessions = await this.prisma.countingSession.findMany({
+      where: { sessionType },
+      include: this.getSessionInclude(),
+      orderBy: {
+        countingDate: "desc",
+      },
+    });
+
+    // Transform to exclude sensitive data
+    return plainToInstance(CountingSessionResponseDto, sessions);
+  }
+
+  async findByUserId(userId: string) {
+    const sessions = await this.prisma.countingSession.findMany({
+      where: { userId },
+      include: this.getSessionInclude(),
+      orderBy: {
+        countingDate: "desc",
+      },
+    });
+
+    // Transform to exclude sensitive data
+    return plainToInstance(CountingSessionResponseDto, sessions);
+  }
+
+  async findByVehicleId(vehicleId: string) {
+    const sessions = await this.prisma.countingSession.findMany({
+      where: { vehicleId },
+      include: this.getSessionInclude(),
+      orderBy: {
+        countingDate: "desc",
+      },
+    });
+
+    // Transform to exclude sensitive data
+    return plainToInstance(CountingSessionResponseDto, sessions);
   }
 
   async findOne(id: string) {
     const session = await this.prisma.countingSession.findUnique({
       where: { id },
-      include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
-        vehicle: true,
-        sugarType: true,
-        sackSession: {
-          include: {
-            sackRows: true,
-          },
-        },
-        boxSession: {
-          include: {
-            boxRows: true,
-          },
-        },
-      },
+      include: this.getSessionInclude(),
     });
 
     if (!session) {
       throw new NotFoundException(`Counting session with ID ${id} not found`);
     }
 
-    return session;
-  }
-
-  async getSackSessionId(countingSessionId: string) {
-    const session = await this.findOne(countingSessionId);
-
-    if (session.sessionType !== "sack") {
-      throw new BadRequestException(
-        `Counting session ${countingSessionId} is not a sack session`,
-      );
-    }
-
-    if (!session.sackSessionId) {
-      throw new NotFoundException(
-        `Sack counting session not found for counting session ${countingSessionId}`,
-      );
-    }
-
-    return session.sackSessionId;
-  }
-
-  async getBoxSessionId(countingSessionId: string) {
-    const session = await this.findOne(countingSessionId);
-
-    if (session.sessionType !== "box") {
-      throw new BadRequestException(
-        `Counting session ${countingSessionId} is not a box session`,
-      );
-    }
-
-    if (!session.boxSessionId) {
-      throw new NotFoundException(
-        `Box counting session not found for counting session ${countingSessionId}`,
-      );
-    }
-
-    return session.boxSessionId;
+    // Transform to exclude sensitive data
+    return plainToInstance(CountingSessionResponseDto, session);
   }
 
   async update(id: string, updateCountingSessionDto: UpdateCountingSessionDto) {
@@ -350,169 +271,128 @@ export class CountingSessionService {
       }
     }
 
-    // Validate session type and corresponding ID (make them optional)
-    if (sessionType === "sack" && sackSessionId) {
-      // If sackSessionId is provided, validate it exists
-      const sackSession = await this.prisma.sackCountingSession.findUnique({
-        where: { id: sackSessionId },
+    // Start a transaction to update both counting session and related session
+    const updatedSession = await this.prisma.$transaction(async (prisma) => {
+      // Update the counting session
+      const countingSession = await prisma.countingSession.update({
+        where: { id },
+        data: {
+          sessionType,
+          sackSessionId,
+          boxSessionId,
+          userId,
+          vehicleId,
+          sugarTypeId,
+          ...data,
+        },
+        include: this.getSessionInclude(),
       });
-      if (!sackSession) {
-        throw new NotFoundException(
-          `Sack counting session with ID ${sackSessionId} not found`,
-        );
+
+      // If status is being updated, also update the related sack/box session
+      if (data.status && countingSession) {
+        if (
+          countingSession.sessionType === "sack" &&
+          countingSession.sackSessionId
+        ) {
+          await prisma.sackCountingSession.update({
+            where: { id: countingSession.sackSessionId },
+            data: { status: data.status },
+          });
+        } else if (
+          countingSession.sessionType === "box" &&
+          countingSession.boxSessionId
+        ) {
+          await prisma.boxCountingSession.update({
+            where: { id: countingSession.boxSessionId },
+            data: { status: data.status },
+          });
+        }
       }
-    }
 
-    if (sessionType === "box" && boxSessionId) {
-      // If boxSessionId is provided, validate it exists
-      const boxSession = await this.prisma.boxCountingSession.findUnique({
-        where: { id: boxSessionId },
-      });
-      if (!boxSession) {
-        throw new NotFoundException(
-          `Box counting session with ID ${boxSessionId} not found`,
-        );
-      }
-    }
-
-    // Validate session type if provided
-    if (sessionType && !["sack", "box"].includes(sessionType)) {
-      throw new BadRequestException(
-        `Invalid session type: ${sessionType}. Must be either "sack" or "box"`,
-      );
-    }
-
-    return this.prisma.countingSession.update({
-      where: { id },
-      data: {
-        sessionType,
-        sackSessionId,
-        boxSessionId,
-        userId,
-        vehicleId,
-        sugarTypeId,
-        ...data,
-      },
-      include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
-        vehicle: true,
-        sugarType: true,
-        sackSession: {
-          include: {
-            sackRows: true,
-          },
-        },
-        boxSession: {
-          include: {
-            boxRows: true,
-          },
-        },
-      },
+      return countingSession;
     });
+
+    // Transform to exclude sensitive data
+    return plainToInstance(CountingSessionResponseDto, updatedSession);
   }
 
   async remove(id: string) {
     const session = await this.findOne(id);
 
-    return this.prisma.countingSession.delete({
+    // Delete the counting session
+    await this.prisma.countingSession.delete({
       where: { id },
-      include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
-        vehicle: true,
-        sugarType: true,
-      },
     });
+
+    // Also delete the associated sack/box session if it exists
+    if (session.sessionType === "sack" && session.sackSessionId) {
+      await this.prisma.sackCountingSession.delete({
+        where: { id: session.sackSessionId },
+      });
+    } else if (session.sessionType === "box" && session.boxSessionId) {
+      await this.prisma.boxCountingSession.delete({
+        where: { id: session.boxSessionId },
+      });
+    }
+
+    return { message: "Counting session deleted successfully" };
   }
 
-  async findBySessionType(sessionType: string) {
-    return this.prisma.countingSession.findMany({
-      where: { sessionType },
-      include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
-        vehicle: true,
-        sugarType: true,
-        sackSession: {
-          include: {
-            sackRows: true,
-          },
-        },
-        boxSession: {
-          include: {
-            boxRows: true,
-          },
-        },
-      },
-      orderBy: {
-        countingDate: "desc",
-      },
-    });
+  async getSackSessionId(countingSessionId: string) {
+    const session = await this.findOne(countingSessionId);
+
+    if (session.sessionType !== "sack") {
+      throw new BadRequestException(
+        `Counting session ${countingSessionId} is not a sack session`,
+      );
+    }
+
+    if (!session.sackSessionId) {
+      throw new NotFoundException(
+        `Sack counting session not found for counting session ${countingSessionId}`,
+      );
+    }
+
+    return session.sackSessionId;
   }
 
-  async findByUserId(userId: string) {
-    return this.prisma.countingSession.findMany({
-      where: { userId },
-      include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
-        vehicle: true,
-        sugarType: true,
-        sackSession: {
-          include: {
-            sackRows: true,
-          },
-        },
-        boxSession: {
-          include: {
-            boxRows: true,
-          },
-        },
-      },
-      orderBy: {
-        countingDate: "desc",
-      },
-    });
+  async getBoxSessionId(countingSessionId: string) {
+    const session = await this.findOne(countingSessionId);
+
+    if (session.sessionType !== "box") {
+      throw new BadRequestException(
+        `Counting session ${countingSessionId} is not a box session`,
+      );
+    }
+
+    if (!session.boxSessionId) {
+      throw new NotFoundException(
+        `Box counting session not found for counting session ${countingSessionId}`,
+      );
+    }
+
+    return session.boxSessionId;
   }
 
-  async findByVehicleId(vehicleId: string) {
-    return this.prisma.countingSession.findMany({
-      where: { vehicleId },
-      include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
-        vehicle: true,
-        sugarType: true,
-        sackSession: {
-          include: {
-            sackRows: true,
-          },
-        },
-        boxSession: {
-          include: {
-            boxRows: true,
-          },
+  private getSessionInclude() {
+    return {
+      user: {
+        include: {
+          profile: true,
         },
       },
-      orderBy: {
-        countingDate: "desc",
+      vehicle: true,
+      sugarType: true,
+      sackSession: {
+        include: {
+          sackRows: true,
+        },
       },
-    });
+      boxSession: {
+        include: {
+          boxRows: true,
+        },
+      },
+    };
   }
 }

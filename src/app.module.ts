@@ -11,6 +11,7 @@ import { VehicleModule } from "./modules/vehicle/vehicle.module";
 import { VehicleTypeModule } from "./modules/vehicle-type/vehicle-type.module";
 import { SugarTypeModule } from "./modules/sugar-type/sugar-type.module";
 import { SackRowModule } from "./modules/sack-row/sack-row.module";
+import { BoxRowModule } from "./modules/box-row/box-row.module";
 import { DatabaseModule } from "./database/database.module";
 import appConfig from "./config/app.config";
 
@@ -30,6 +31,7 @@ import appConfig from "./config/app.config";
     VehicleTypeModule,
     SugarTypeModule,
     SackRowModule,
+    BoxRowModule,
   ],
   controllers: [AppController],
   providers: [AppService],

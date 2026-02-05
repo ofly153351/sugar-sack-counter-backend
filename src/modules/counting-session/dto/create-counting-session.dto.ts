@@ -44,18 +44,6 @@ export class CreateCountingSessionDto {
   @IsString()
   sugarTypeId: string;
 
-  @ApiProperty({
-    description: "Total count of items (sacks or boxes)",
-    default: 0,
-  })
-  @IsNumber()
-  totalCount: number;
-
-  @ApiPropertyOptional({ description: "Total weight in kilograms" })
-  @IsNumber()
-  @IsOptional()
-  totalWeight?: number;
-
   @ApiPropertyOptional({
     description: "Date and time of counting",
     default: "current date/time",

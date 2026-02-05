@@ -29,16 +29,30 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
-      transform: true,
+      transform: true, // Enable transform for proper DTO parsing
     }),
   );
 
   // Enable CORS with credentials for cookie support
   app.enableCors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["http://localhost:3000", "http://localhost:3001"]
+        : true, // Allow all origins in development
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cookie",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+      "Access-Control-Request-Method",
+      "Access-Control-Request-Headers",
+    ],
+    exposedHeaders: ["Content-Range", "X-Content-Range"],
+    maxAge: 86400,
   });
 
   // Swagger configuration

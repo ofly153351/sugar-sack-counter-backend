@@ -8,10 +8,14 @@ import { CreateCountingSessionDto } from "./dto/create-counting-session.dto";
 import { UpdateCountingSessionDto } from "./dto/update-counting-session.dto";
 import { plainToInstance } from "class-transformer";
 import { CountingSessionResponseDto } from "./dto/counting-session-response.dto";
+import { MinioService } from "../minio/minio.service";
 
 @Injectable()
 export class CountingSessionService {
-  constructor(private prisma: DatabaseService) {}
+  constructor(
+    private prisma: DatabaseService,
+    private readonly minioService: MinioService,
+  ) {}
 
   async create(createCountingSessionDto: CreateCountingSessionDto) {
     const {
@@ -167,23 +171,42 @@ export class CountingSessionService {
     return plainToInstance(CountingSessionResponseDto, sessions);
   }
 
-  async findBySessionType(sessionType: string) {
+  async findBySessionType(sessionType: string, status?: string) {
     if (!["sack", "box"].includes(sessionType)) {
       throw new BadRequestException(
         `Invalid session type: ${sessionType}. Must be either "sack" or "box"`,
       );
     }
 
+    // Build where clause
+    const whereClause: any = { sessionType };
+
+    // Handle status filter
+    if (status && status !== "all") {
+      whereClause.status = status;
+    } else if (!status) {
+      // Default status to 'completed' if not provided
+      whereClause.status = "completed";
+    }
+    // If status === "all", don't add status filter
+
     const sessions = await this.prisma.countingSession.findMany({
-      where: { sessionType },
+      where: whereClause,
       include: this.getSessionInclude(),
       orderBy: {
         countingDate: "desc",
       },
     });
 
+    // Add MinIO URLs to sessions
+    const sessionsWithUrls = await Promise.all(
+      sessions.map(async (session) => {
+        return await this.addMinioUrlsToSession(session);
+      }),
+    );
+
     // Transform to exclude sensitive data
-    return plainToInstance(CountingSessionResponseDto, sessions);
+    return plainToInstance(CountingSessionResponseDto, sessionsWithUrls);
   }
 
   async findByUserId(userId: string) {
@@ -222,8 +245,11 @@ export class CountingSessionService {
       throw new NotFoundException(`Counting session with ID ${id} not found`);
     }
 
+    // Add MinIO URLs to session
+    const sessionWithUrls = await this.addMinioUrlsToSession(session);
+
     // Transform to exclude sensitive data
-    return plainToInstance(CountingSessionResponseDto, session);
+    return plainToInstance(CountingSessionResponseDto, sessionWithUrls);
   }
 
   async update(id: string, updateCountingSessionDto: UpdateCountingSessionDto) {
@@ -394,5 +420,80 @@ export class CountingSessionService {
         },
       },
     };
+  }
+
+  /**
+   * Add MinIO presigned URLs to session data
+   */
+  private async addMinioUrlsToSession(session: any): Promise<any> {
+    const sessionWithUrls = { ...session };
+
+    // Add URLs to sack rows
+    if (sessionWithUrls.sackSession?.sackRows?.length > 0) {
+      sessionWithUrls.sackSession.sackRows = await Promise.all(
+        sessionWithUrls.sackSession.sackRows.map(async (row: any) => {
+          const rowWithUrls = { ...row };
+
+          // Add original image URL
+          if (row.originalImagePath) {
+            rowWithUrls.originalImageUrl =
+              await this.minioService.getPresignedUrl(
+                row.originalImagePath,
+                86400, // 24 hours expiry
+              );
+            rowWithUrls.originalImageExists =
+              await this.minioService.fileExists(row.originalImagePath);
+          }
+
+          // Add annotated image URL
+          if (row.annotatedImagePath) {
+            rowWithUrls.annotatedImageUrl =
+              await this.minioService.getPresignedUrl(
+                row.annotatedImagePath,
+                86400, // 24 hours expiry
+              );
+            rowWithUrls.annotatedImageExists =
+              await this.minioService.fileExists(row.annotatedImagePath);
+          }
+
+          return rowWithUrls;
+        }),
+      );
+    }
+
+    // Add URLs to box rows
+    if (sessionWithUrls.boxSession?.boxRows?.length > 0) {
+      sessionWithUrls.boxSession.boxRows = await Promise.all(
+        sessionWithUrls.boxSession.boxRows.map(async (row: any) => {
+          const rowWithUrls = { ...row };
+
+          // Add original image URL
+          if (row.originalImagePath) {
+            rowWithUrls.originalImageUrl =
+              await this.minioService.getPresignedUrl(
+                row.originalImagePath,
+                86400, // 24 hours expiry
+              );
+            rowWithUrls.originalImageExists =
+              await this.minioService.fileExists(row.originalImagePath);
+          }
+
+          // Add annotated image URL
+          if (row.annotatedImagePath) {
+            rowWithUrls.annotatedImageUrl =
+              await this.minioService.getPresignedUrl(
+                row.annotatedImagePath,
+                86400, // 24 hours expiry
+              );
+            rowWithUrls.annotatedImageExists =
+              await this.minioService.fileExists(row.annotatedImagePath);
+          }
+
+          return rowWithUrls;
+        }),
+      );
+    }
+
+    return sessionWithUrls;
   }
 }

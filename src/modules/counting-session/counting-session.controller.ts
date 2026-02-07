@@ -16,6 +16,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from "@nestjs/swagger";
 import { CountingSessionService } from "./counting-session.service";
 import { CreateCountingSessionDto } from "./dto/create-counting-session.dto";
@@ -56,12 +57,34 @@ export class CountingSessionController {
   @Get("type/:sessionType")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth("JWT-auth")
-  @ApiOperation({ summary: "Get counting sessions by type" })
-  @ApiResponse({ status: 200, description: "Return counting sessions by type" })
-  @ApiResponse({ status: 400, description: "Invalid session type" })
+  @ApiOperation({
+    summary: "Get counting sessions by type",
+    description:
+      "Get counting sessions filtered by session type. Default status is 'completed' if not specified",
+  })
+  @ApiParam({
+    name: "sessionType",
+    description: "Type of counting session",
+    enum: ["sack", "box"],
+    example: "sack",
+  })
+  @ApiQuery({
+    name: "status",
+    description: "Optional status filter. Default: 'completed'",
+    required: false,
+    example: "completed",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Return counting sessions by type and status",
+  })
+  @ApiResponse({ status: 400, description: "Invalid session type or status" })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  findBySessionType(@Param("sessionType") sessionType: string) {
-    return this.countingSessionService.findBySessionType(sessionType);
+  findBySessionType(
+    @Param("sessionType") sessionType: string,
+    @Query("status") status?: string,
+  ) {
+    return this.countingSessionService.findBySessionType(sessionType, status);
   }
 
   @Get("user/:userId")

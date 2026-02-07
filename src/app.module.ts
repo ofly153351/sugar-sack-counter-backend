@@ -13,6 +13,7 @@ import { SugarTypeModule } from "./modules/sugar-type/sugar-type.module";
 import { SackRowModule } from "./modules/sack-row/sack-row.module";
 import { BoxRowModule } from "./modules/box-row/box-row.module";
 import { DatabaseModule } from "./database/database.module";
+import { MinioModule } from "./modules/minio/minio.module";
 import appConfig from "./config/app.config";
 
 @Module({
@@ -32,6 +33,7 @@ import appConfig from "./config/app.config";
     SugarTypeModule,
     SackRowModule,
     BoxRowModule,
+    MinioModule,
   ],
   controllers: [AppController],
   providers: [AppService],

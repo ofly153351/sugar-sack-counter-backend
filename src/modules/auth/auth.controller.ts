@@ -101,7 +101,18 @@ export class AuthController {
   async logout(@Res() response: Response) {
     const origin = response.req?.headers?.origin;
     const cookieOptions = this.authService.getCookieOptions(origin);
+    // Clear cookie for current domain config
     response.clearCookie("access_token", cookieOptions);
+    // Clear legacy host-only cookie (no domain attribute)
+    response.clearCookie("access_token", {
+      ...cookieOptions,
+      domain: undefined,
+    });
+    // Clear legacy api subdomain cookie if it was set previously
+    response.clearCookie("access_token", {
+      ...cookieOptions,
+      domain: "api.sugartech.online",
+    });
     return response.json({ message: "Logout successful" });
   }
 

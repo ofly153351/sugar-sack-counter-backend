@@ -101,18 +101,23 @@ export class AuthController {
   async logout(@Res() response: Response) {
     const origin = response.req?.headers?.origin;
     const cookieOptions = this.authService.getCookieOptions(origin);
-    // Clear cookie for current domain config
-    response.clearCookie("access_token", cookieOptions);
-    // Clear legacy host-only cookie (no domain attribute)
-    response.clearCookie("access_token", {
+    const common = {
       ...cookieOptions,
-      domain: undefined,
-    });
-    // Clear legacy api subdomain cookie if it was set previously
-    response.clearCookie("access_token", {
-      ...cookieOptions,
-      domain: "api.sugartech.online",
-    });
+      path: "/",
+      maxAge: 0,
+    };
+
+    const domains = [
+      undefined, // host-only
+      ".sugartech.online",
+      "api.sugartech.online",
+      ".api.sugartech.online",
+    ];
+
+    for (const domain of domains) {
+      response.cookie("access_token", "", { ...common, domain });
+      response.cookie("refresh_token", "", { ...common, domain });
+    }
     return response.json({ message: "Logout successful" });
   }
 

@@ -29,29 +29,18 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
-      transform: true,
+      transform: true, // Enable transform for proper DTO parsing
     }),
   );
 
   // Enable CORS with credentials for cookie support
-  // Read allowed origins from environment variable
-  const corsOrigins =
-    process.env.CORS_ORIGIN || "http://localhost:3000,http://localhost:3001";
-  const allowedOrigins = corsOrigins.split(",").map((origin) => origin.trim());
-
   app.enableCors({
-    origin: function (origin, callback) {
-      // อนุญาต requests ที่ไม่มี origin (เช่น mobile apps, curl, postman)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["http://localhost:3000", "http://localhost:3001"]
+        : true, // Allow all origins in development
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
@@ -59,9 +48,11 @@ async function bootstrap() {
       "X-Requested-With",
       "Accept",
       "Origin",
-      "Access-Control-Allow-Headers",
+      "Access-Control-Request-Method",
+      "Access-Control-Request-Headers",
     ],
-    exposedHeaders: ["Set-Cookie", "Authorization"],
+    exposedHeaders: ["Content-Range", "X-Content-Range"],
+    maxAge: 86400,
   });
 
   // Swagger configuration

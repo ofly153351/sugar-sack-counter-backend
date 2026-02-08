@@ -1,10 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 
 export class CountingSession {
   @ApiProperty()
   id: string;
 
-  @ApiProperty({ enum: ['sack', 'box'] })
+  @ApiProperty({ enum: ["sack", "box"] })
   sessionType: string;
 
   @ApiProperty({ required: false })
@@ -21,12 +21,6 @@ export class CountingSession {
 
   @ApiProperty()
   sugarTypeId: string;
-
-  @ApiProperty()
-  totalCount: number;
-
-  @ApiProperty({ required: false })
-  totalWeight?: number;
 
   @ApiProperty()
   countingDate: Date;

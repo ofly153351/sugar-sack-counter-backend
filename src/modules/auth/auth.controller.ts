@@ -98,9 +98,9 @@ export class AuthController {
       },
     },
   })
-  async logout(@Res({ passthrough: true }) response: Response) {
+  async logout(@Res() response: Response) {
     response.clearCookie("access_token");
-    return { message: "Logout successful" };
+    return response.json({ message: "Logout successful" });
   }
 
   @UseGuards(JwtAuthGuard)
@@ -313,7 +313,7 @@ export class AuthController {
           id: user.id,
           email: user.email,
           username: user.username,
-          role: user.role?.name || "user",
+          role: user.role || "user",
         },
         tokenSource: this.getTokenSource(req, body, token),
       };

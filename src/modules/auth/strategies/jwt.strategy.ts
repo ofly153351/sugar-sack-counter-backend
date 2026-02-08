@@ -13,9 +13,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: (req) => {
         let token = null;
-        let tokenSource = "none";
+        let tokenSource = "unknown";
 
-        // 1. Check from cookies (standard cookie-parser)
         if (req && req.cookies) {
           token = req.cookies["access_token"];
           if (token) {
@@ -46,11 +45,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
         // Debug logging
         if (process.env.NODE_ENV === "development") {
-          console.log(`🔑 JWT Token Extraction:`);
-          console.log(`   Source: ${tokenSource}`);
-          console.log(`   Token exists: ${!!token}`);
-          console.log(`   Headers:`, req?.headers);
-          console.log(`   Cookies:`, req?.cookies);
+          // console.log(`🔑 JWT Token Extraction:`);
+          // console.log(`   Source: ${tokenSource}`);
+          // console.log(`   Token exists: ${!!token}`);
+          // console.log(`   Headers:`, req?.headers);
+          // console.log(`   Cookies:`, req?.cookies);
         }
 
         return token;

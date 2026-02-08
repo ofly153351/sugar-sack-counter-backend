@@ -182,11 +182,20 @@ export class AuthService {
         origin.includes("localhost:3000") || // frontend localhost
         origin.includes("localhost:3001")); // backend localhost
 
+    let originHostname: string | null = null;
+    try {
+      originHostname = origin ? new URL(origin).hostname : null;
+    } catch (error) {
+      originHostname = null;
+    }
+
+    const isSugartechDomain =
+      !!originHostname &&
+      (originHostname === "sugartech.online" ||
+        originHostname.endsWith(".sugartech.online"));
+
     // Check if this is HTTPS production domain
-    const isProductionDomain =
-      origin &&
-      (origin.startsWith("https://activitiesmanagement.online") ||
-        origin.startsWith("https://www.activitiesmanagement.online"));
+    const isProductionDomain = !!origin && isSugartechDomain;
 
     // ⭐️ LOGIC FOR CROSS-ORIGIN COOKIES ⭐️
     if (isLocalhostOrigin && isProduction) {
@@ -230,6 +239,8 @@ export class AuthService {
       // Set domain for production cookies
       if (cookieDomain) {
         options.domain = cookieDomain;
+      } else if (isSugartechDomain) {
+        options.domain = ".sugartech.online";
       } else {
         // Auto-set domain from origin
         try {

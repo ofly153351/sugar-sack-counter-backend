@@ -99,7 +99,9 @@ export class AuthController {
     },
   })
   async logout(@Res() response: Response) {
-    response.clearCookie("access_token");
+    const origin = response.req?.headers?.origin;
+    const cookieOptions = this.authService.getCookieOptions(origin);
+    response.clearCookie("access_token", cookieOptions);
     return response.json({ message: "Logout successful" });
   }
 

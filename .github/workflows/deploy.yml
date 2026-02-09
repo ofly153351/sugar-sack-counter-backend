@@ -84,7 +84,7 @@ jobs:
               --index-url https://download.pytorch.org/whl/cpu
 
               echo "📦 Installing Requirements"
-              pip install -r requirement-prod.txt --no-deps
+              pip install -r requirement-prod.txt 
             else
               echo "✅ requirement-prod.txt not changed → skip pip install"
             fi

@@ -71,8 +71,8 @@ jobs:
               NEED_REBUILD=true
             fi
 
-            if [ -f "requirement-prod.txt" ]; then
-              if ! ./venv/bin/pip freeze | grep -q fastapi; then
+            if [ -d "venv" ]; then
+              if ! ./venv/bin/python -c "import torch, ultralytics; ok=(torch.__version__=='2.5.1+cpu' and ultralytics.__version__=='8.4.8'); raise SystemExit(0 if ok else 1)" >/dev/null 2>&1; then
                 NEED_REBUILD=true
               fi
             fi
@@ -91,7 +91,7 @@ jobs:
                 --index-url https://download.pytorch.org/whl/cpu
 
               echo "📦 Install requirements"
-              ./venv/bin/pip install -r requirement-prod.txt
+              ./venv/bin/pip install -r requirement-prod.txt --upgrade --no-cache-dir
 
             else
               echo "✅ Using existing VENV"

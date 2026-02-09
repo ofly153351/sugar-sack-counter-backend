@@ -89,6 +89,9 @@ jobs:
               echo "✅ requirement-prod.txt not changed → skip pip install"
             fi
 
+            # Ensure pkg_resources is available at runtime
+            ./venv/bin/pip install -U setuptools
+
             pm2 delete ai-service || true
             pm2 start main.py --name ai-service --interpreter ./venv/bin/python
 

@@ -70,21 +70,28 @@ jobs:
               REQUIREMENTS_CHANGED=true
             fi
 
+            NEED_REBUILD=false
             if [ ! -d "venv" ] || [ "$REQUIREMENTS_CHANGED" = true ]; then
+              NEED_REBUILD=true
+            fi
+            if [ -d "venv" ] && ! ./venv/bin/python -c "import cv2, fastapi, ultralytics" >/dev/null 2>&1; then
+              NEED_REBUILD=true
+            fi
+
+            if [ "$NEED_REBUILD" = true ]; then
               echo "📦 Rebuilding Python VENV..."
 
               rm -rf venv
               $PYTHON_BIN -m venv venv
 
-              source venv/bin/activate
-              pip install -U pip setuptools wheel
+              ./venv/bin/pip install -U pip setuptools wheel
 
               echo "📦 Installing Torch CPU"
-              pip install torch==2.0.1+cpu torchvision==0.15.2+cpu \
+              ./venv/bin/pip install torch==2.0.1+cpu torchvision==0.15.2+cpu \
               --index-url https://download.pytorch.org/whl/cpu
 
               echo "📦 Installing Requirements"
-              pip install -r requirement-prod.txt 
+              ./venv/bin/pip install -r requirement-prod.txt
             else
               echo "✅ requirement-prod.txt not changed → skip pip install"
             fi

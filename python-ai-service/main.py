@@ -26,7 +26,10 @@ app = FastAPI(title="AI Sugar Sack and Box Detection Service with MinIO Storage"
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://sugartech.online",
+        "https://www.sugartech.online",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

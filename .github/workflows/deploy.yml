@@ -22,19 +22,20 @@ jobs:
 
             cd /root/sugar-sack/sugar-sack-counter-backend
 
-            # ensure pm2 installed
+            # ---------- PM2 ----------
             if ! command -v pm2 &> /dev/null; then
               echo "Installing PM2..."
               npm install -g pm2
             fi
 
-            git pull
+            # ---------- Git ----------
+            git fetch origin main
+            git reset --hard origin/main
 
+            # ---------- Node Backend ----------
             npm install
-
             rm -rf dist
 
-            # Prisma Version Check
             PRISMA_VERSION=$(npm list @prisma/client 2>/dev/null | grep @prisma/client | awk -F@ '{print $3}' | cut -d' ' -f1)
 
             if [[ "$PRISMA_VERSION" != "5.22.0" ]]; then
@@ -45,20 +46,41 @@ jobs:
             fi
 
             npx prisma generate
-
             npm run build
 
             pm2 delete backend || true
             pm2 start dist/main.js --name backend
 
-            # Python AI Service
+            # ---------- Python AI ----------
             cd python-ai-service
 
-            if [ ! -d "venv" ]; then
-              python3 -m venv venv
+            echo "🐍 Checking Python Version"
+            if command -v python3.10 &> /dev/null; then
+              PYTHON_BIN=python3.10
+            else
+              PYTHON_BIN=python3
             fi
 
-            ./venv/bin/pip install -r requirements.txt
+            echo "Using Python: $PYTHON_BIN"
+
+            REQUIREMENTS_CHANGED=false
+
+            if git diff HEAD~1 HEAD -- requirements.txt | grep .; then
+              REQUIREMENTS_CHANGED=true
+            fi
+
+            if [ ! -d "venv" ] || [ "$REQUIREMENTS_CHANGED" = true ]; then
+              echo "📦 Rebuilding Python VENV..."
+
+              rm -rf venv
+              $PYTHON_BIN -m venv venv
+
+              source venv/bin/activate
+              pip install -U pip setuptools wheel
+              pip install -r requirements.txt
+            else
+              echo "✅ requirements.txt not changed → skip pip install"
+            fi
 
             pm2 delete ai-service || true
             pm2 start main.py --name ai-service --interpreter ./venv/bin/python

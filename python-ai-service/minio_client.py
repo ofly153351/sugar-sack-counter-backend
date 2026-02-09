@@ -4,6 +4,7 @@ Handles file uploads to MinIO object storage
 """
 
 import os
+from datetime import timedelta
 import io
 from datetime import datetime
 from typing import Optional, Tuple
@@ -170,7 +171,7 @@ class MinioClient:
                 url = self.client.presigned_get_object(
                     bucket_name=self.bucket_name,
                     object_name=object_name,
-                    expires=604800  # 7 days in seconds
+                    expires=timedelta(days=7)
                 )
             except Exception as url_error:
                 logger.warning(f"⚠️ Could not generate presigned URL: {url_error}")
@@ -235,7 +236,7 @@ class MinioClient:
                 url = self.client.presigned_get_object(
                     bucket_name=self.bucket_name,
                     object_name=object_path,
-                    expires=604800  # 7 days in seconds
+                    expires=timedelta(days=7)
                 )
             except Exception as url_error:
                 logger.warning(f"⚠️ Could not generate presigned URL: {url_error}")
@@ -327,7 +328,7 @@ class MinioClient:
                 return self.client.presigned_get_object(
                     bucket_name=self.bucket_name,
                     object_name=object_name,
-                    expires=expires
+                    expires=timedelta(seconds=expires)
                 )
             except Exception as e:
                 logger.warning(f"⚠️ Could not generate presigned URL for {object_name}: {e}")

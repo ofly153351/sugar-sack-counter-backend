@@ -55,16 +55,12 @@ jobs:
             cd python-ai-service
 
             echo "🐍 Detect Python"
-            if command -v python3.10 &> /dev/null; then
-              PYTHON_BIN=python3.10
-            elif command -v python3.9 &> /dev/null; then
-              PYTHON_BIN=python3.9
-            else
-              echo "Installing Python..."
+            if ! command -v python3.10 &> /dev/null; then
+              echo "Python 3.10 not found. Installing..."
               apt-get update
               apt-get install -y python3.10 python3.10-venv python3.10-distutils
-              PYTHON_BIN=python3.10
             fi
+            PYTHON_BIN=python3.10
 
             echo "Using Python: $PYTHON_BIN"
 
@@ -89,6 +85,10 @@ jobs:
               $PYTHON_BIN -m venv venv
 
               ./venv/bin/pip install -U pip setuptools wheel
+
+              echo "📦 Install Torch (CPU)"
+              ./venv/bin/pip install torch==2.5.1+cpu torchvision==0.20.1+cpu torchaudio==2.5.1+cpu \
+                --index-url https://download.pytorch.org/whl/cpu
 
               echo "📦 Install requirements"
               ./venv/bin/pip install -r requirement-prod.txt

@@ -12,6 +12,5 @@ ultralytics==8.0.20
 
 minio==7.2.7
 
-setuptools==68.2.2
-# สำคัญ
+setuptools==69.5.1
 click==8.1.7

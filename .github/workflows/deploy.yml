@@ -54,52 +54,55 @@ jobs:
             # ---------- Python AI ----------
             cd python-ai-service
 
-            echo "🐍 Checking Python Version"
-            if ! command -v python3.9 &> /dev/null; then
-              echo "Python 3.9 not found. Installing..."
+            echo "🐍 Detect Python"
+            if command -v python3.10 &> /dev/null; then
+              PYTHON_BIN=python3.10
+            elif command -v python3.9 &> /dev/null; then
+              PYTHON_BIN=python3.9
+            else
+              echo "Installing Python..."
               apt-get update
-              apt-get install -y python3.9 python3.9-venv python3.9-distutils
+              apt-get install -y python3.10 python3.10-venv python3.10-distutils
+              PYTHON_BIN=python3.10
             fi
-            PYTHON_BIN=python3.9
 
             echo "Using Python: $PYTHON_BIN"
 
-            REQUIREMENTS_CHANGED=false
-            if git diff HEAD~1 HEAD -- requirement-prod.txt | grep .; then
-              REQUIREMENTS_CHANGED=true
-            fi
-
+            # ---------- Check if need rebuild ----------
             NEED_REBUILD=false
-            if [ ! -d "venv" ] || [ "$REQUIREMENTS_CHANGED" = true ]; then
-              NEED_REBUILD=true
-            fi
-            if [ -d "venv" ] && ! ./venv/bin/python -c "import cv2, fastapi, ultralytics" >/dev/null 2>&1; then
+
+            if [ ! -d "venv" ]; then
               NEED_REBUILD=true
             fi
 
+            if [ -f "requirement-prod.txt" ]; then
+              if ! ./venv/bin/pip freeze | grep -q fastapi; then
+                NEED_REBUILD=true
+              fi
+            fi
+
+            # ---------- Rebuild if needed ----------
             if [ "$NEED_REBUILD" = true ]; then
-              echo "📦 Rebuilding Python VENV..."
+              echo "📦 Rebuilding VENV"
 
               rm -rf venv
               $PYTHON_BIN -m venv venv
 
               ./venv/bin/pip install -U pip setuptools wheel
 
-              echo "📦 Installing Torch CPU"
-              ./venv/bin/pip install torch==2.0.1+cpu torchvision==0.15.2+cpu \
-              --index-url https://download.pytorch.org/whl/cpu
-
-              echo "📦 Installing Requirements"
+              echo "📦 Install requirements"
               ./venv/bin/pip install -r requirement-prod.txt
+
             else
-              echo "✅ requirement-prod.txt not changed → skip pip install"
+              echo "✅ Using existing VENV"
             fi
 
-            # Ensure pkg_resources is available at runtime
-            ./venv/bin/pip install -U setuptools
-
+            # ---------- PM2 ----------
             pm2 delete ai-service || true
-            pm2 start main.py --name ai-service --interpreter ./venv/bin/python
+
+            pm2 start main.py \
+              --name ai-service \
+              --interpreter ./venv/bin/python \
+              --time
 
             pm2 save
-            pm2 status

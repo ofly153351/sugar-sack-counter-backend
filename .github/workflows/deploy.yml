@@ -55,7 +55,9 @@ jobs:
             cd python-ai-service
 
             echo "🐍 Checking Python Version"
-            if command -v python3.10 &> /dev/null; then
+            if command -v python3.9 &> /dev/null; then
+              PYTHON_BIN=python3.9
+            elif command -v python3.10 &> /dev/null; then
               PYTHON_BIN=python3.10
             else
               PYTHON_BIN=python3
@@ -64,8 +66,7 @@ jobs:
             echo "Using Python: $PYTHON_BIN"
 
             REQUIREMENTS_CHANGED=false
-
-            if git diff HEAD~1 HEAD -- requirements.txt | grep .; then
+            if git diff HEAD~1 HEAD -- requirement-prod.txt | grep .; then
               REQUIREMENTS_CHANGED=true
             fi
 
@@ -77,9 +78,15 @@ jobs:
 
               source venv/bin/activate
               pip install -U pip setuptools wheel
-              pip install -r requirements.txt
+
+              echo "📦 Installing Torch CPU"
+              pip install torch==2.0.1+cpu torchvision==0.15.2+cpu \
+              --index-url https://download.pytorch.org/whl/cpu
+
+              echo "📦 Installing Requirements"
+              pip install -r requirement-prod.txt --no-deps
             else
-              echo "✅ requirements.txt not changed → skip pip install"
+              echo "✅ requirement-prod.txt not changed → skip pip install"
             fi
 
             pm2 delete ai-service || true

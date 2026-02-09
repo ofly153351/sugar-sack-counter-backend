@@ -55,13 +55,12 @@ jobs:
             cd python-ai-service
 
             echo "🐍 Checking Python Version"
-            if command -v python3.9 &> /dev/null; then
-              PYTHON_BIN=python3.9
-            elif command -v python3.10 &> /dev/null; then
-              PYTHON_BIN=python3.10
-            else
-              PYTHON_BIN=python3
+            if ! command -v python3.9 &> /dev/null; then
+              echo "Python 3.9 not found. Installing..."
+              apt-get update
+              apt-get install -y python3.9 python3.9-venv python3.9-distutils
             fi
+            PYTHON_BIN=python3.9
 
             echo "Using Python: $PYTHON_BIN"
 

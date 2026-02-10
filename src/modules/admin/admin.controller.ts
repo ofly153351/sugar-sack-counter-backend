@@ -5,13 +5,17 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { UserService } from '../user/user.service';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { AdminService } from './admin.service';
 
 @ApiTags('admin')
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class AdminController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly adminService: AdminService,
+  ) {}
 
   @Get('dashboard')
   @ApiBearerAuth('JWT-auth')
@@ -46,6 +50,45 @@ export class AdminController {
         totalSessions: 500,
       },
     };
+  }
+
+  @Get('dashboard/summary')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Admin dashboard summary',
+    description:
+      'Get summary stats for dashboard (last 7 days, today, totals)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard summary retrieved successfully',
+    schema: {
+      example: {
+        sacks: {
+          today: 120,
+          last7Days: [
+            { date: '2026-02-04', total: 80 },
+            { date: '2026-02-05', total: 95 },
+          ],
+        },
+        boxes: {
+          today: 60,
+          last7Days: [
+            { date: '2026-02-04', total: 40 },
+            { date: '2026-02-05', total: 55 },
+          ],
+        },
+        totalUsers: 150,
+        totalVehicles: 25,
+        range: {
+          startDate: '2026-02-04',
+          endDate: '2026-02-10',
+        },
+      },
+    },
+  })
+  getDashboardSummary() {
+    return this.adminService.getDashboardSummary();
   }
 
   @Get('users')

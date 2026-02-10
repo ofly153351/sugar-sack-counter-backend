@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { DatabaseService } from "../../database/database.service";
 
-type DailyStat = { date: string; total: number };
+type DailyStat = { date: Date | string; total: number };
 
 @Injectable()
 export class AdminService {
@@ -51,8 +51,9 @@ export class AdminService {
 
     const normalizeSeries = (rows: DailyStat[]) =>
       rows.map((row) => ({
-        date:
-          row.date instanceof Date ? toDateKey(row.date) : String(row.date),
+        date: toDateKey(
+          row.date instanceof Date ? row.date : new Date(String(row.date)),
+        ),
         total: Number(row.total) || 0,
       }));
 

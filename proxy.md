@@ -85,3 +85,6 @@ MINIO_SERVER_URL=https://minio.sugartech.online
 ```
 
 These are already added in `docker-compose.yml` in this repo.
+   
+
+

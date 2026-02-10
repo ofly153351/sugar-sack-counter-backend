@@ -326,6 +326,35 @@ export class UserService {
     return { message: "User deleted successfully" };
   }
 
+  async setRole(id: string, roleName: string) {
+    const user = await this.database.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    const role = await this.database.role.findFirst({
+      where: { name: roleName },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`Role ${roleName} not found`);
+    }
+
+    await this.database.user.update({
+      where: { id },
+      data: {
+        role: {
+          connect: { id: role.id },
+        },
+      },
+    });
+
+    return this.findOne(id);
+  }
+
   async validateUser(username: string, password: string) {
     const user = await this.findByUsername(username);
     if (!user) {

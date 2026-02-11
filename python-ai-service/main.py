@@ -24,10 +24,16 @@ except ImportError:
 app = FastAPI(title="AI Sugar Sack and Box Detection Service with MinIO Storage")
 
 # CORS middleware
+# If CORS_ORIGINS="*", do not allow credentials (browser disallows "*"+credentials).
+# If set to a list, credentials are allowed.
+cors_origins_env = os.getenv("CORS_ORIGINS", "*")
+cors_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+allow_credentials = cors_origins != ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

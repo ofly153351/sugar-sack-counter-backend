@@ -13,7 +13,7 @@ export class VehicleTypeService {
   constructor(private database: DatabaseService) {}
 
   async create(createVehicleTypeDto: CreateVehicleTypeDto) {
-    const { name, description } = createVehicleTypeDto;
+    const { name } = createVehicleTypeDto;
 
     // Check for duplicate vehicle type name
     const existingVehicleType = await this.database.vehicleType.findFirst({
@@ -27,7 +27,6 @@ export class VehicleTypeService {
     const vehicleType = await this.database.vehicleType.create({
       data: {
         name,
-        description,
       },
     });
 
@@ -145,20 +144,10 @@ export class VehicleTypeService {
   async searchVehicleTypes(searchTerm: string) {
     const vehicleTypes = await this.database.vehicleType.findMany({
       where: {
-        OR: [
-          {
-            name: {
-              contains: searchTerm,
-              mode: "insensitive",
-            },
-          },
-          {
-            description: {
-              contains: searchTerm,
-              mode: "insensitive",
-            },
-          },
-        ],
+        name: {
+          contains: searchTerm,
+          mode: "insensitive",
+        },
       },
       orderBy: {
         name: "asc",

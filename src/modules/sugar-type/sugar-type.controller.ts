@@ -24,7 +24,7 @@ import { UpdateSugarTypeDto } from "./dto/update-sugar-type.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 
 @ApiTags("sugar-types")
-@Controller("sugar-types")
+@Controller(["sugar-types", "products"])
 export class SugarTypeController {
   constructor(private readonly sugarTypeService: SugarTypeService) {}
 
@@ -43,7 +43,7 @@ export class SugarTypeController {
       example: {
         id: "uuid-string",
         name: "น้ำตาลทรายขาว",
-        description: "น้ำตาลทรายขาวบริสุทธิ์",
+        productCode: "SKU-SUGAR-001",
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
       },
@@ -75,7 +75,7 @@ export class SugarTypeController {
   @ApiQuery({
     name: "search",
     required: false,
-    description: "ค้นหาประเภทน้ำตาลตามชื่อหรือคำอธิบาย",
+    description: "ค้นหาประเภทน้ำตาลตามชื่อหรือรหัสสินค้า",
   })
   @ApiResponse({
     status: 200,
@@ -85,14 +85,14 @@ export class SugarTypeController {
         {
           id: "uuid-string",
           name: "น้ำตาลทรายขาว",
-          description: "น้ำตาลทรายขาวบริสุทธิ์",
+          productCode: "SKU-SUGAR-001",
           createdAt: "2024-01-01T00:00:00.000Z",
           updatedAt: "2024-01-01T00:00:00.000Z",
         },
         {
           id: "uuid-string-2",
           name: "น้ำตาลทรายแดง",
-          description: "น้ำตาลทรายแดงไม่ฟอกสี",
+          productCode: "SKU-SUGAR-002",
           createdAt: "2024-01-02T00:00:00.000Z",
           updatedAt: "2024-01-02T00:00:00.000Z",
         },
@@ -125,7 +125,7 @@ export class SugarTypeController {
         {
           id: "uuid-string",
           name: "น้ำตาลทรายขาว",
-          description: "น้ำตาลทรายขาวบริสุทธิ์",
+          productCode: "SKU-SUGAR-001",
           createdAt: "2024-01-01T00:00:00.000Z",
           updatedAt: "2024-01-01T00:00:00.000Z",
         },
@@ -159,7 +159,7 @@ export class SugarTypeController {
       example: {
         id: "uuid-string",
         name: "น้ำตาลทรายขาว",
-        description: "น้ำตาลทรายขาวบริสุทธิ์",
+        productCode: "SKU-SUGAR-001",
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
       },
@@ -197,7 +197,7 @@ export class SugarTypeController {
       example: {
         id: "uuid-string",
         name: "น้ำตาลทรายขาว",
-        description: "น้ำตาลทรายขาวบริสุทธิ์",
+        productCode: "SKU-SUGAR-001",
         sackSessions: [
           {
             id: "session-uuid",
@@ -257,7 +257,7 @@ export class SugarTypeController {
       example: {
         id: "uuid-string",
         name: "น้ำตาลทรายขาวพิเศษ",
-        description: "น้ำตาลทรายขาวบริสุทธิ์เกรดพรีเมียม",
+        productCode: "SKU-SUGAR-001-PREMIUM",
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-02T00:00:00.000Z",
       },
@@ -342,7 +342,7 @@ export class SugarTypeController {
       example: {
         id: "uuid-string",
         name: "น้ำตาลทรายขาว",
-        description: "น้ำตาลทรายขาวบริสุทธิ์",
+        productCode: "SKU-SUGAR-001",
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
       },

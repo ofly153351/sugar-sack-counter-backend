@@ -13,7 +13,7 @@ export class SugarTypeService {
   constructor(private database: DatabaseService) {}
 
   async create(createSugarTypeDto: CreateSugarTypeDto) {
-    const { name, description } = createSugarTypeDto;
+    const { name, productCode } = createSugarTypeDto;
 
     // Check for duplicate sugar type name
     const existingSugarType = await this.database.sugarType.findFirst({
@@ -27,7 +27,7 @@ export class SugarTypeService {
     const sugarType = await this.database.sugarType.create({
       data: {
         name,
-        description,
+        productCode,
       },
     });
 
@@ -197,7 +197,7 @@ export class SugarTypeService {
             },
           },
           {
-            description: {
+            productCode: {
               contains: searchTerm,
               mode: "insensitive",
             },

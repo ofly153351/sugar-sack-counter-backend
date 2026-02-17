@@ -13,10 +13,10 @@ export class UpdateSugarTypeDto extends PartialType(CreateSugarTypeDto) {
   name?: string;
 
   @ApiPropertyOptional({
-    description: "คำอธิบายประเภทน้ำตาล",
-    example: "น้ำตาลทรายขาวบริสุทธิ์เกรดพรีเมียม",
+    description: "รหัสสินค้า",
+    example: "SKU-SUGAR-001-PREMIUM",
   })
   @IsOptional()
   @IsString()
-  description?: string;
+  productCode?: string;
 }

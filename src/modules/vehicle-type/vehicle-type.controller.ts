@@ -43,7 +43,6 @@ export class VehicleTypeController {
       example: {
         id: "uuid-string",
         name: "รถบรรทุก 10 ล้อ",
-        description: "รถบรรทุกขนาดใหญ่สำหรับขนส่งน้ำตาล",
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
       },
@@ -75,7 +74,7 @@ export class VehicleTypeController {
   @ApiQuery({
     name: "search",
     required: false,
-    description: "ค้นหาประเภทรถตามชื่อหรือคำอธิบาย",
+    description: "ค้นหาประเภทรถตามชื่อ",
   })
   @ApiResponse({
     status: 200,
@@ -85,14 +84,12 @@ export class VehicleTypeController {
         {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
-          description: "รถบรรทุกขนาดใหญ่สำหรับขนส่งน้ำตาล",
           createdAt: "2024-01-01T00:00:00.000Z",
           updatedAt: "2024-01-01T00:00:00.000Z",
         },
         {
           id: "uuid-string-2",
           name: "รถบรรทุก 6 ล้อ",
-          description: "รถบรรทุกขนาดกลาง",
           createdAt: "2024-01-02T00:00:00.000Z",
           updatedAt: "2024-01-02T00:00:00.000Z",
         },
@@ -129,7 +126,6 @@ export class VehicleTypeController {
       example: {
         id: "uuid-string",
         name: "รถบรรทุก 10 ล้อ",
-        description: "รถบรรทุกขนาดใหญ่สำหรับขนส่งน้ำตาล",
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
       },
@@ -166,7 +162,6 @@ export class VehicleTypeController {
       example: {
         id: "uuid-string",
         name: "รถบรรทุก 10 ล้อ",
-        description: "รถบรรทุกขนาดใหญ่สำหรับขนส่งน้ำตาล",
         vehicles: [
           {
             id: "vehicle-uuid",
@@ -213,7 +208,6 @@ export class VehicleTypeController {
       example: {
         id: "uuid-string",
         name: "รถบรรทุก 12 ล้อ",
-        description: "รถบรรทุกขนาดใหญ่พิเศษสำหรับขนส่งน้ำตาล",
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-02T00:00:00.000Z",
       },
@@ -298,7 +292,6 @@ export class VehicleTypeController {
       example: {
         id: "uuid-string",
         name: "รถบรรทุก 10 ล้อ",
-        description: "รถบรรทุกขนาดใหญ่สำหรับขนส่งน้ำตาล",
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
       },

@@ -140,6 +140,39 @@ export class CountingSessionController {
     return this.countingSessionService.update(id, updateCountingSessionDto);
   }
 
+  @Delete("type/:sessionType")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({
+    summary: "Delete counting sessions by type",
+    description:
+      "Delete all counting sessions by session type and optional status, including related sack/box session tables and MinIO images",
+  })
+  @ApiParam({
+    name: "sessionType",
+    description: "Type of counting session",
+    enum: ["sack", "box"],
+    example: "sack",
+  })
+  @ApiQuery({
+    name: "status",
+    description: "Optional status filter. Use 'all' to delete all statuses",
+    required: false,
+    example: "all",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Counting sessions deleted successfully",
+  })
+  @ApiResponse({ status: 400, description: "Invalid session type or status" })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
+  removeBySessionType(
+    @Param("sessionType") sessionType: string,
+    @Query("status") status?: string,
+  ) {
+    return this.countingSessionService.removeBySessionType(sessionType, status);
+  }
+
   @Delete(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth("JWT-auth")

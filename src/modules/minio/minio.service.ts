@@ -127,6 +127,35 @@ export class MinioService {
   }
 
   /**
+   * Delete a file in MinIO
+   * @param objectName The path/name of the object
+   */
+  async deleteObject(objectName: string): Promise<void> {
+    if (!objectName) {
+      return;
+    }
+
+    const cleanObjectName = objectName.startsWith("/")
+      ? objectName.substring(1)
+      : objectName;
+
+    try {
+      await this.minioClient.removeObject(this.bucketName, cleanObjectName);
+      this.logger.debug(`Deleted object from MinIO: ${cleanObjectName}`);
+    } catch (error) {
+      if (error?.code === "NotFound" || error?.code === "NoSuchKey") {
+        // Already removed or missing; treat as success
+        return;
+      }
+
+      this.logger.error(
+        `Failed to delete object ${cleanObjectName}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Health check for MinIO connection
    */
   async healthCheck(): Promise<{ healthy: boolean; error?: string }> {

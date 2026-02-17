@@ -343,25 +343,88 @@ export class CountingSessionService {
   }
 
   async remove(id: string) {
-    const session = await this.findOne(id);
+    const session = await this.getSessionForDeletion(id);
+    const imagePaths = this.collectImagePathsFromSessions([session]);
 
-    // Delete the counting session
-    await this.prisma.countingSession.delete({
-      where: { id },
+    await this.prisma.$transaction(async (prisma) => {
+      await prisma.countingSession.delete({
+        where: { id },
+      });
+
+      if (session.sessionType === "sack" && session.sackSessionId) {
+        await prisma.sackCountingSession.delete({
+          where: { id: session.sackSessionId },
+        });
+      } else if (session.sessionType === "box" && session.boxSessionId) {
+        await prisma.boxCountingSession.delete({
+          where: { id: session.boxSessionId },
+        });
+      }
     });
 
-    // Also delete the associated sack/box session if it exists
-    if (session.sessionType === "sack" && session.sackSessionId) {
-      await this.prisma.sackCountingSession.delete({
-        where: { id: session.sackSessionId },
-      });
-    } else if (session.sessionType === "box" && session.boxSessionId) {
-      await this.prisma.boxCountingSession.delete({
-        where: { id: session.boxSessionId },
-      });
+    const minioResult = await this.deleteImagesFromMinio(imagePaths);
+
+    return {
+      message: "Counting session deleted successfully",
+      deletedImages: minioResult.deleted,
+      failedImageDeletes: minioResult.failed,
+    };
+  }
+
+  async removeBySessionType(sessionType: string, status?: string) {
+    if (!["sack", "box"].includes(sessionType)) {
+      throw new BadRequestException(
+        `Invalid session type: ${sessionType}. Must be either "sack" or "box"`,
+      );
     }
 
-    return { message: "Counting session deleted successfully" };
+    const whereClause: any = { sessionType };
+    if (status && status !== "all") {
+      whereClause.status = status;
+    }
+
+    const sessions = await this.prisma.countingSession.findMany({
+      where: whereClause,
+      include: this.getDeleteInclude(),
+    });
+
+    if (sessions.length === 0) {
+      return {
+        message: "No counting sessions found for deletion",
+        deletedSessions: 0,
+        deletedImages: 0,
+        failedImageDeletes: 0,
+      };
+    }
+
+    const imagePaths = this.collectImagePathsFromSessions(sessions);
+
+    await this.prisma.$transaction(async (prisma) => {
+      for (const session of sessions) {
+        await prisma.countingSession.delete({
+          where: { id: session.id },
+        });
+
+        if (session.sessionType === "sack" && session.sackSessionId) {
+          await prisma.sackCountingSession.delete({
+            where: { id: session.sackSessionId },
+          });
+        } else if (session.sessionType === "box" && session.boxSessionId) {
+          await prisma.boxCountingSession.delete({
+            where: { id: session.boxSessionId },
+          });
+        }
+      }
+    });
+
+    const minioResult = await this.deleteImagesFromMinio(imagePaths);
+
+    return {
+      message: "Counting sessions deleted successfully",
+      deletedSessions: sessions.length,
+      deletedImages: minioResult.deleted,
+      failedImageDeletes: minioResult.failed,
+    };
   }
 
   async getSackSessionId(countingSessionId: string) {
@@ -420,6 +483,96 @@ export class CountingSessionService {
         },
       },
     };
+  }
+
+  private getDeleteInclude() {
+    return {
+      sackSession: {
+        include: {
+          sackRows: {
+            select: {
+              originalImagePath: true,
+              annotatedImagePath: true,
+            },
+          },
+        },
+      },
+      boxSession: {
+        include: {
+          boxRows: {
+            select: {
+              originalImagePath: true,
+              annotatedImagePath: true,
+            },
+          },
+        },
+      },
+    };
+  }
+
+  private async getSessionForDeletion(id: string) {
+    const session = await this.prisma.countingSession.findUnique({
+      where: { id },
+      include: this.getDeleteInclude(),
+    });
+
+    if (!session) {
+      throw new NotFoundException(`Counting session with ID ${id} not found`);
+    }
+
+    return session;
+  }
+
+  private collectImagePathsFromSessions(sessions: any[]): string[] {
+    const pathSet = new Set<string>();
+
+    for (const session of sessions) {
+      if (session.sackSession?.sackRows?.length > 0) {
+        for (const row of session.sackSession.sackRows) {
+          if (row.originalImagePath) {
+            pathSet.add(row.originalImagePath);
+          }
+          if (row.annotatedImagePath) {
+            pathSet.add(row.annotatedImagePath);
+          }
+        }
+      }
+
+      if (session.boxSession?.boxRows?.length > 0) {
+        for (const row of session.boxSession.boxRows) {
+          if (row.originalImagePath) {
+            pathSet.add(row.originalImagePath);
+          }
+          if (row.annotatedImagePath) {
+            pathSet.add(row.annotatedImagePath);
+          }
+        }
+      }
+    }
+
+    return Array.from(pathSet);
+  }
+
+  private async deleteImagesFromMinio(imagePaths: string[]) {
+    if (imagePaths.length === 0) {
+      return { deleted: 0, failed: 0 };
+    }
+
+    let deleted = 0;
+    let failed = 0;
+
+    await Promise.all(
+      imagePaths.map(async (path) => {
+        try {
+          await this.minioService.deleteObject(path);
+          deleted += 1;
+        } catch {
+          failed += 1;
+        }
+      }),
+    );
+
+    return { deleted, failed };
   }
 
   /**

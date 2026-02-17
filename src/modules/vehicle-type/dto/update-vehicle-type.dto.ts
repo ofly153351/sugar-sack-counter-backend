@@ -11,12 +11,4 @@ export class UpdateVehicleTypeDto extends PartialType(CreateVehicleTypeDto) {
   @IsOptional()
   @IsString()
   name?: string;
-
-  @ApiPropertyOptional({
-    description: "คำอธิบายประเภทรถ",
-    example: "รถบรรทุกขนาดใหญ่พิเศษสำหรับขนส่งน้ำตาล",
-  })
-  @IsOptional()
-  @IsString()
-  description?: string;
 }

@@ -1,5 +1,5 @@
-import { IsString, IsNotEmpty, IsOptional } from "class-validator";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsString, IsNotEmpty } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateVehicleTypeDto {
   @ApiProperty({
@@ -10,12 +10,4 @@ export class CreateVehicleTypeDto {
   @IsString()
   @IsNotEmpty()
   name: string;
-
-  @ApiPropertyOptional({
-    description: "คำอธิบายประเภทรถ",
-    example: "รถบรรทุกขนาดใหญ่สำหรับขนส่งน้ำตาล",
-  })
-  @IsOptional()
-  @IsString()
-  description?: string;
 }

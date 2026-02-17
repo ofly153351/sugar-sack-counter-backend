@@ -50,7 +50,6 @@ export class VehicleController {
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
-          description: "รถบรรทุกขนาดใหญ่",
         },
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
@@ -101,7 +100,6 @@ export class VehicleController {
           vehicleType: {
             id: "uuid-string",
             name: "รถบรรทุก 10 ล้อ",
-            description: "รถบรรทุกขนาดใหญ่",
           },
           createdAt: "2024-01-01T00:00:00.000Z",
           updatedAt: "2024-01-01T00:00:00.000Z",
@@ -142,7 +140,6 @@ export class VehicleController {
           vehicleType: {
             id: "uuid-string",
             name: "รถบรรทุก 10 ล้อ",
-            description: "รถบรรทุกขนาดใหญ่",
           },
           createdAt: "2024-01-01T00:00:00.000Z",
           updatedAt: "2024-01-01T00:00:00.000Z",
@@ -184,7 +181,6 @@ export class VehicleController {
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
-          description: "รถบรรทุกขนาดใหญ่",
         },
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
@@ -230,7 +226,6 @@ export class VehicleController {
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
-          description: "รถบรรทุกขนาดใหญ่",
         },
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-02T00:00:00.000Z",
@@ -320,7 +315,6 @@ export class VehicleController {
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
-          description: "รถบรรทุกขนาดใหญ่",
         },
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",
@@ -365,7 +359,6 @@ export class VehicleController {
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
-          description: "รถบรรทุกขนาดใหญ่",
         },
         createdAt: "2024-01-01T00:00:00.000Z",
         updatedAt: "2024-01-01T00:00:00.000Z",

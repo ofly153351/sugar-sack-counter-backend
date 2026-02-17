@@ -81,7 +81,7 @@ model Vehicle {
 model SugarType {
   id               String                @id @default(uuid())
   name             String
-  description      String?
+  productCode      String?               @map("description")
   createdAt        DateTime              @default(now()) @map("created_at")
   updatedAt        DateTime              @default(now()) @updatedAt @map("updated_at")
   boxSessions      BoxCountingSession[]

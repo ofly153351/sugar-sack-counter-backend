@@ -119,8 +119,8 @@ export class SugarTypeResponseDto {
   name: string;
 
   @Expose()
-  @ApiProperty({ description: "Description", required: false })
-  description?: string;
+  @ApiProperty({ description: "รหัสสินค้า", required: false })
+  productCode?: string;
 
   @Expose()
   @ApiProperty({ description: "Creation timestamp" })

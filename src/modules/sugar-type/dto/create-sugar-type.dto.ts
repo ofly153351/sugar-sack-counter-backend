@@ -12,10 +12,10 @@ export class CreateSugarTypeDto {
   name: string;
 
   @ApiPropertyOptional({
-    description: "คำอธิบายประเภทน้ำตาล",
-    example: "น้ำตาลทรายขาวบริสุทธิ์",
+    description: "รหัสสินค้า",
+    example: "SKU-SUGAR-001",
   })
   @IsOptional()
   @IsString()
-  description?: string;
+  productCode?: string;
 }

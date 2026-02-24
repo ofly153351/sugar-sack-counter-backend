@@ -43,6 +43,18 @@ export class VehicleTypeService {
     return vehicleTypes;
   }
 
+  async findOptions() {
+    return this.database.vehicleType.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+  }
+
   async findOne(id: string) {
     const vehicleType = await this.database.vehicleType.findUnique({
       where: { id },

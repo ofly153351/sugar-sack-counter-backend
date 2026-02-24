@@ -107,6 +107,37 @@ export class VehicleTypeController {
     return this.vehicleTypeService.findAll();
   }
 
+  @Get("options")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({
+    summary: "ดึงรายการประเภทรถสำหรับ dropdown",
+    description: "ดึงรายการประเภทรถเฉพาะข้อมูลที่จำเป็น (id, name)",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "ดึงข้อมูลสำเร็จ",
+    schema: {
+      example: [
+        {
+          id: "uuid-string",
+          name: "รถบรรทุก 10 ล้อ",
+        },
+        {
+          id: "uuid-string-2",
+          name: "รถบรรทุก 6 ล้อ",
+        },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: "ไม่มีสิทธิ์เข้าถึง",
+  })
+  findOptions() {
+    return this.vehicleTypeService.findOptions();
+  }
+
   @Get(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth("JWT-auth")

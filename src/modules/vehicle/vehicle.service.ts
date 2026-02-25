@@ -13,7 +13,7 @@ export class VehicleService {
   constructor(private database: DatabaseService) {}
 
   async create(createVehicleDto: CreateVehicleDto) {
-    const { vehicleCode, licensePlate, vehicleTypeId, driverName, status } =
+    const { vehicleCode, licensePlate, vehicleTypeId, driverUserId, status } =
       createVehicleDto;
 
     // Check for duplicate vehicle code
@@ -44,16 +44,44 @@ export class VehicleService {
       throw new NotFoundException(`Vehicle type with ID ${vehicleTypeId} not found`);
     }
 
+    const driverUser = await this.database.user.findUnique({
+      where: { id: driverUserId },
+      include: { profile: true },
+    });
+
+    if (!driverUser) {
+      throw new NotFoundException(`Driver user with ID ${driverUserId} not found`);
+    }
+
+    const firstName = driverUser.profile?.firstName?.trim();
+    const lastName = driverUser.profile?.lastName?.trim();
+    const driverName =
+      [firstName, lastName].filter(Boolean).join(" ").trim() ||
+      driverUser.username;
+
     const vehicle = await this.database.vehicle.create({
       data: {
         vehicleCode,
         licensePlate,
         vehicleTypeId,
+        driverUserId,
         driverName,
         status: status || "active",
       },
       include: {
         vehicleType: true,
+        driver: {
+          select: {
+            id: true,
+            username: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -64,6 +92,18 @@ export class VehicleService {
     const vehicles = await this.database.vehicle.findMany({
       include: {
         vehicleType: true,
+        driver: {
+          select: {
+            id: true,
+            username: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -78,6 +118,18 @@ export class VehicleService {
       where: { id },
       include: {
         vehicleType: true,
+        driver: {
+          select: {
+            id: true,
+            username: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -91,12 +143,42 @@ export class VehicleService {
   async findByVehicleCode(vehicleCode: string) {
     return this.database.vehicle.findUnique({
       where: { vehicleCode },
+      include: {
+        vehicleType: true,
+        driver: {
+          select: {
+            id: true,
+            username: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
   async findByLicensePlate(licensePlate: string) {
     return this.database.vehicle.findUnique({
       where: { licensePlate },
+      include: {
+        vehicleType: true,
+        driver: {
+          select: {
+            id: true,
+            username: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -109,7 +191,7 @@ export class VehicleService {
       throw new NotFoundException(`Vehicle with ID ${id} not found`);
     }
 
-    const { vehicleCode, licensePlate, vehicleTypeId, ...updateData } =
+    const { vehicleCode, licensePlate, vehicleTypeId, driverUserId, ...updateData } =
       updateVehicleDto;
 
     // Check for duplicate vehicle code if being updated
@@ -148,6 +230,24 @@ export class VehicleService {
       }
     }
 
+    let resolvedDriverName: string | undefined;
+    if (driverUserId && driverUserId !== vehicle.driverUserId) {
+      const driverUser = await this.database.user.findUnique({
+        where: { id: driverUserId },
+        include: { profile: true },
+      });
+
+      if (!driverUser) {
+        throw new NotFoundException(`Driver user with ID ${driverUserId} not found`);
+      }
+
+      const firstName = driverUser.profile?.firstName?.trim();
+      const lastName = driverUser.profile?.lastName?.trim();
+      resolvedDriverName =
+        [firstName, lastName].filter(Boolean).join(" ").trim() ||
+        driverUser.username;
+    }
+
     const updatedVehicle = await this.database.vehicle.update({
       where: { id },
       data: {
@@ -155,9 +255,23 @@ export class VehicleService {
         ...(vehicleCode && { vehicleCode }),
         ...(licensePlate && { licensePlate }),
         ...(vehicleTypeId && { vehicleTypeId }),
+        ...(driverUserId && { driverUserId }),
+        ...(resolvedDriverName && { driverName: resolvedDriverName }),
       },
       include: {
         vehicleType: true,
+        driver: {
+          select: {
+            id: true,
+            username: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -204,6 +318,18 @@ export class VehicleService {
       where: { status: "active" },
       include: {
         vehicleType: true,
+        driver: {
+          select: {
+            id: true,
+            username: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         vehicleCode: "asc",
@@ -226,6 +352,18 @@ export class VehicleService {
       where: { status },
       include: {
         vehicleType: true,
+        driver: {
+          select: {
+            id: true,
+            username: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         vehicleCode: "asc",

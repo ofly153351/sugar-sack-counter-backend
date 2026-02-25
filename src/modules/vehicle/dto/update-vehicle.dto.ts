@@ -1,6 +1,6 @@
 import { PartialType } from "@nestjs/mapped-types";
 import { CreateVehicleDto } from "./create-vehicle.dto";
-import { IsOptional, IsString, IsEnum } from "class-validator";
+import { IsOptional, IsString, IsEnum, IsUUID } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
 export class UpdateVehicleDto extends PartialType(CreateVehicleDto) {
@@ -29,12 +29,12 @@ export class UpdateVehicleDto extends PartialType(CreateVehicleDto) {
   vehicleTypeId?: string;
 
   @ApiPropertyOptional({
-    description: "ชื่อคนขับรถ",
-    example: "สมหญิง ใจดี",
+    description: "ID ของผู้ขับรถ (user ในระบบ)",
+    example: "uuid-string",
   })
   @IsOptional()
-  @IsString()
-  driverName?: string;
+  @IsUUID()
+  driverUserId?: string;
 
   @ApiPropertyOptional({
     description: "สถานะรถ",

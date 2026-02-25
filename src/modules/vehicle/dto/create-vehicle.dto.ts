@@ -36,13 +36,13 @@ export class CreateVehicleDto {
   vehicleTypeId: string;
 
   @ApiProperty({
-    description: "ชื่อคนขับรถ",
-    example: "สมชาย ใจดี",
+    description: "ID ของผู้ขับรถ (user ในระบบ)",
+    example: "uuid-string",
     required: true,
   })
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
-  driverName: string;
+  driverUserId: string;
 
   @ApiPropertyOptional({
     description: "สถานะรถ",

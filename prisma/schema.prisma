@@ -29,6 +29,7 @@ model User {
   boxSessions      BoxCountingSession[]
   countingSessions CountingSession[]
   sackSessions     SackCountingSession[]
+  drivenVehicles   Vehicle[]             @relation("VehicleDriver")
   profile          UserProfile?
   role             Role                  @relation(fields: [roleId], references: [id])
 
@@ -66,6 +67,7 @@ model Vehicle {
   vehicleCode      String                @unique @map("vehicle_code")
   licensePlate     String                @unique @map("license_plate")
   vehicleTypeId    String                @map("vehicle_type_id")
+  driverUserId     String?               @map("driver_user_id")
   driverName       String                @map("driver_name")
   status           String                @default("active")
   createdAt        DateTime              @default(now()) @map("created_at")
@@ -73,6 +75,7 @@ model Vehicle {
   boxSessions      BoxCountingSession[]
   countingSessions CountingSession[]
   sackSessions     SackCountingSession[]
+  driver           User?                 @relation("VehicleDriver", fields: [driverUserId], references: [id])
   vehicleType      VehicleType           @relation(fields: [vehicleTypeId], references: [id])
 
   @@map("vehicles")

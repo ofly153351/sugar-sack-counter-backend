@@ -39,8 +39,8 @@ model UserProfile {
   id           String   @id @default(uuid())
   userId       String   @unique @map("user_id")
   title        String
-  firstName    String   @map("first_name")
-  lastName     String   @map("last_name")
+  firstName    String?  @map("first_name")
+  lastName     String?  @map("last_name")
   phone        String?
   position     String?
   employeeCode String?  @unique @map("employee_code")

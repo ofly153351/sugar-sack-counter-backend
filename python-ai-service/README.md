@@ -15,7 +15,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 python3 main.py
 ```
-
+      
 Service runs on: `http://localhost:8082`
 
 ### 2. Check Service Status

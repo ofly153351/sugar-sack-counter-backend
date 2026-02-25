@@ -355,6 +355,27 @@ export class UserService {
     return this.findOne(id);
   }
 
+  async resetPasswordByAdmin(id: string, newPassword: string) {
+    const user = await this.database.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await this.database.user.update({
+      where: { id },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return { message: "User password updated successfully" };
+  }
+
   async validateUser(username: string, password: string) {
     const user = await this.findByUsername(username);
     if (!user) {

@@ -6,6 +6,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody } 
 import { UserService } from '../user/user.service';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { AdminService } from './admin.service';
+import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 
 @ApiTags('admin')
 @Controller('admin')
@@ -206,5 +207,45 @@ export class AdminController {
     @Body() updateUserRoleDto: UpdateUserRoleDto,
   ) {
     return this.userService.setRole(id, updateUserRoleDto.role);
+  }
+
+  @Patch('users/:id/password')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Reset user password',
+    description: 'Reset password for a user (admin only)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'User ID',
+    example: 'uuid-string',
+  })
+  @ApiBody({ type: ResetUserPasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User password updated successfully',
+    schema: {
+      example: {
+        message: 'User password updated successfully',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid password data',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied. Admin role required',
+  })
+  resetUserPassword(
+    @Param('id') id: string,
+    @Body() resetUserPasswordDto: ResetUserPasswordDto,
+  ) {
+    return this.userService.resetPasswordByAdmin(id, resetUserPasswordDto.newPassword);
   }
 }

@@ -25,15 +25,6 @@ export class UserService {
       title,
     } = createUserDto;
 
-    // Check for duplicate email
-    const existingUserWithEmail = await this.database.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUserWithEmail) {
-      throw new ConflictException("Email already exists");
-    }
-
     // Check for duplicate username
     const existingUserWithUsername = await this.database.user.findUnique({
       where: { username },
@@ -75,12 +66,26 @@ export class UserService {
       }
     }
 
+    const normalizedEmail = email?.trim();
+    const userEmail = normalizedEmail
+      ? normalizedEmail
+      : await this.generateAvailableEmailFromUsername(username);
+
+    // Check for duplicate email
+    const existingUserWithEmail = await this.database.user.findUnique({
+      where: { email: userEmail },
+    });
+
+    if (existingUserWithEmail) {
+      throw new ConflictException("Email already exists");
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await this.database.user.create({
       data: {
-        email,
+        email: userEmail,
         password: hashedPassword,
         username,
         role: {
@@ -90,12 +95,12 @@ export class UserService {
         },
         profile: {
           create: {
-            title: title,
-            firstName: firstName || "Unknown",
-            lastName: lastName || "User",
+            title: title || "Mr.",
+            firstName: firstName || "-",
+            lastName: lastName || "-",
             position: "User",
-            phone: phone,
-            employeeCode: employeeCode,
+            phone: phone || null,
+            employeeCode: employeeCode || null,
           },
         },
       },
@@ -104,6 +109,38 @@ export class UserService {
     // Remove password from response
     const { password: _, ...result } = user;
     return result;
+  }
+
+  private async generateAvailableEmailFromUsername(
+    username: string,
+  ): Promise<string> {
+    const localPart = username
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9._-]/g, "");
+    const base = localPart || "user";
+    const domain = "local.user";
+
+    let attempt = 0;
+    while (attempt < 1000) {
+      const email =
+        attempt === 0
+          ? `${base}@${domain}`
+          : `${base}${attempt}@${domain}`;
+
+      const existing = await this.database.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        return email;
+      }
+
+      attempt += 1;
+    }
+
+    throw new ConflictException("Unable to generate unique email");
   }
 
   async findAll() {
@@ -277,8 +314,8 @@ export class UserService {
         await this.database.userProfile.create({
           data: {
             userId: id,
-            firstName: firstName || "Unknown",
-            lastName: lastName || "User",
+            firstName: firstName || "-",
+            lastName: lastName || "-",
             title: title || "",
             position: "User",
             phone: phone || null,

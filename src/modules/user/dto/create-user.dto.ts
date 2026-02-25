@@ -4,18 +4,20 @@ import {
   IsString,
   MinLength,
   IsOptional,
+  ValidateIf,
 } from "class-validator";
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateUserDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "email",
     example: "user@example.com",
-    required: true,
+    required: false,
   })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined && value !== "")
   @IsEmail()
-  @IsNotEmpty()
-  email: string;
+  email?: string;
 
   @ApiProperty({
     description: "password",
@@ -37,46 +39,46 @@ export class CreateUserDto {
   @IsNotEmpty()
   username: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "firstName",
     example: "John",
-    required: true,
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  firstName: string;
+  firstName?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "lastName",
     example: "Doe",
-    required: true,
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  lastName: string;
+  lastName?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "employeeCode",
     example: "ADM001",
-    required: true,
+    required: false,
   })
   @IsString()
   @IsOptional()
   employeeCode?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Phone",
     example: "092332214523",
-    required: true,
+    required: false,
   })
   @IsString()
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "title",
     example: "Mr.",
-    required: true,
+    required: false,
   })
   @IsString()
   @IsOptional()

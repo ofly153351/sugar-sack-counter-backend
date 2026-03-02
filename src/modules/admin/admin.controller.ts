@@ -58,7 +58,7 @@ export class AdminController {
   @ApiOperation({
     summary: 'Admin dashboard summary',
     description:
-      'Get summary stats for dashboard (last 7 days, today, totals)',
+      'Get summary stats for dashboard (last 12 months, this month, totals)',
   })
   @ApiResponse({
     status: 200,
@@ -66,24 +66,24 @@ export class AdminController {
     schema: {
       example: {
         sacks: {
-          today: 120,
-          last7Days: [
-            { date: '2026-02-04', total: 80 },
-            { date: '2026-02-05', total: 95 },
+          thisMonth: 120,
+          last12Months: [
+            { month: '2025-04', total: 420 },
+            { month: '2025-05', total: 510 },
           ],
         },
         boxes: {
-          today: 60,
-          last7Days: [
-            { date: '2026-02-04', total: 40 },
-            { date: '2026-02-05', total: 55 },
+          thisMonth: 60,
+          last12Months: [
+            { month: '2025-04', total: 260 },
+            { month: '2025-05', total: 310 },
           ],
         },
         totalUsers: 150,
         totalVehicles: 25,
         range: {
-          startDate: '2026-02-04',
-          endDate: '2026-02-10',
+          startMonth: '2025-04',
+          endMonth: '2026-03',
         },
       },
     },

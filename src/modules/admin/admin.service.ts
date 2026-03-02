@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { DatabaseService } from "../../database/database.service";
 
 type DailyStat = { date: Date | string; total: number };
+type MonthlyStat = { month: Date | string; total: number };
 
 @Injectable()
 export class AdminService {
@@ -9,97 +10,105 @@ export class AdminService {
 
   async getDashboardSummary() {
     const now = new Date();
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
-    const endOfToday = new Date(now);
-    endOfToday.setHours(23, 59, 59, 999);
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfCurrentMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
 
-    const startDate = new Date(startOfToday);
-    startDate.setDate(startDate.getDate() - 6);
+    const startMonth = new Date(
+      startOfCurrentMonth.getFullYear(),
+      startOfCurrentMonth.getMonth() - 11,
+      1,
+    );
 
-    const toDateKey = (date: Date) => {
+    const toMonthKey = (date: Date) => {
       const y = date.getFullYear();
       const m = `${date.getMonth() + 1}`.padStart(2, "0");
-      const d = `${date.getDate()}`.padStart(2, "0");
-      return `${y}-${m}-${d}`;
+      return `${y}-${m}`;
     };
 
     const [sackRows, boxRows, totalUsers, totalVehicles] = await Promise.all([
-      this.database.$queryRaw<DailyStat[]>`
-        SELECT DATE(counting_date) AS date,
+      this.database.$queryRaw<MonthlyStat[]>`
+        SELECT DATE_TRUNC('month', counting_date) AS month,
                COALESCE(SUM(total_count), 0)::int AS total
         FROM counting_sessions
         WHERE session_type = 'sack'
-          AND counting_date >= ${startDate}
-          AND counting_date <= ${endOfToday}
-        GROUP BY DATE(counting_date)
-        ORDER BY DATE(counting_date) ASC
+          AND counting_date >= ${startMonth}
+          AND counting_date <= ${endOfCurrentMonth}
+        GROUP BY DATE_TRUNC('month', counting_date)
+        ORDER BY DATE_TRUNC('month', counting_date) ASC
       `,
-      this.database.$queryRaw<DailyStat[]>`
-        SELECT DATE(counting_date) AS date,
+      this.database.$queryRaw<MonthlyStat[]>`
+        SELECT DATE_TRUNC('month', counting_date) AS month,
                COALESCE(SUM(total_count), 0)::int AS total
         FROM counting_sessions
         WHERE session_type = 'box'
-          AND counting_date >= ${startDate}
-          AND counting_date <= ${endOfToday}
-        GROUP BY DATE(counting_date)
-        ORDER BY DATE(counting_date) ASC
+          AND counting_date >= ${startMonth}
+          AND counting_date <= ${endOfCurrentMonth}
+        GROUP BY DATE_TRUNC('month', counting_date)
+        ORDER BY DATE_TRUNC('month', counting_date) ASC
       `,
       this.database.user.count(),
       this.database.vehicle.count(),
     ]);
 
-    const normalizeSeries = (rows: DailyStat[]) =>
+    const normalizeSeries = (rows: MonthlyStat[]) =>
       rows.map((row) => ({
-        date: toDateKey(
-          row.date instanceof Date ? row.date : new Date(String(row.date)),
+        month: toMonthKey(
+          row.month instanceof Date ? row.month : new Date(String(row.month)),
         ),
         total: Number(row.total) || 0,
       }));
 
-    const initDaily = (): Record<string, number> => {
+    const initMonthly = (): Record<string, number> => {
       const map: Record<string, number> = {};
-      const cursor = new Date(startDate);
-      for (let i = 0; i < 7; i += 1) {
-        map[toDateKey(cursor)] = 0;
-        cursor.setDate(cursor.getDate() + 1);
+      const cursor = new Date(startMonth);
+      for (let i = 0; i < 12; i += 1) {
+        map[toMonthKey(cursor)] = 0;
+        cursor.setMonth(cursor.getMonth() + 1);
       }
       return map;
     };
 
-    const sackDaily = initDaily();
-    const boxDaily = initDaily();
+    const sackMonthly = initMonthly();
+    const boxMonthly = initMonthly();
 
     for (const row of normalizeSeries(sackRows)) {
-      if (row.date in sackDaily) sackDaily[row.date] = row.total;
+      if (row.month in sackMonthly) sackMonthly[row.month] = row.total;
     }
     for (const row of normalizeSeries(boxRows)) {
-      if (row.date in boxDaily) boxDaily[row.date] = row.total;
+      if (row.month in boxMonthly) boxMonthly[row.month] = row.total;
     }
 
-    const todayKey = toDateKey(startOfToday);
-    const sackToday = sackDaily[todayKey] || 0;
-    const boxToday = boxDaily[todayKey] || 0;
+    const currentMonthKey = toMonthKey(startOfCurrentMonth);
+    const sackCurrentMonth = sackMonthly[currentMonthKey] || 0;
+    const boxCurrentMonth = boxMonthly[currentMonthKey] || 0;
 
-    const toSeries = (map: Record<string, number>): DailyStat[] =>
+    const toSeries = (map: Record<string, number>) =>
       Object.keys(map)
         .sort()
-        .map((date) => ({ date, total: map[date] }));
+        .map((month) => ({ month, total: map[month] }));
 
     return {
       sacks: {
-        today: sackToday,
-        last7Days: toSeries(sackDaily),
+        thisMonth: sackCurrentMonth,
+        last12Months: toSeries(sackMonthly),
       },
       boxes: {
-        today: boxToday,
-        last7Days: toSeries(boxDaily),
+        thisMonth: boxCurrentMonth,
+        last12Months: toSeries(boxMonthly),
       },
       totalUsers,
       totalVehicles,
       range: {
-        startDate: toDateKey(startDate),
-        endDate: toDateKey(startOfToday),
+        startMonth: toMonthKey(startMonth),
+        endMonth: toMonthKey(startOfCurrentMonth),
       },
     };
   }

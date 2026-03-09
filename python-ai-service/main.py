@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import tempfile
+from collections import Counter
 from io import BytesIO
 from typing import Dict, List, Optional
 
@@ -41,18 +42,34 @@ app.add_middleware(
 # Load confidence thresholds from environment variables
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.45"))
 BOX_CONFIDENCE_THRESHOLD = float(os.getenv("BOX_CONFIDENCE_THRESHOLD", "0.2"))
+MODEL_PATH = os.getenv("MODEL_PATH", "bestTeacher.pt")
+SACK_CLASS_NAME = os.getenv("SACK_CLASS_NAME", "bag").strip().lower()
+BOX_CLASS_NAME = os.getenv("BOX_CLASS_NAME", "bbox").strip().lower()
+CLASS_ALIASES = {
+    "sack": "sack",
+    "box": "box",
+    SACK_CLASS_NAME: "sack",
+    BOX_CLASS_NAME: "box",
+}
 print(f"📊 Using confidence thresholds - Sack: {CONFIDENCE_THRESHOLD}, Box: {BOX_CONFIDENCE_THRESHOLD}")
 
 # Load custom YOLO model
 try:
-    model = YOLO("best.pt")  # Use custom trained model
+    model = YOLO(MODEL_PATH)  # Use custom trained model
     print("✅ Custom YOLO model loaded successfully")
 
     # Display model classes for debugging
     if hasattr(model, 'names'):
         print(f"📋 Model classes: {model.names}")
-        print(f"📋 Class 0: '{model.names[0]}'")
-        print(f"📋 Class 1: '{model.names[1]}'")
+        try:
+            print(f"📋 Class 0: '{model.names[0]}'")
+        except Exception:
+            pass
+        try:
+            print(f"📋 Class 1: '{model.names[1]}'")
+        except Exception:
+            pass
+        print(f"🧭 Class mapping: {SACK_CLASS_NAME} -> sack, {BOX_CLASS_NAME} -> box")
         print(f"⚠️ Note: Model may have low confidence scores. Using thresholds - Sack: {CONFIDENCE_THRESHOLD}, Box: {BOX_CONFIDENCE_THRESHOLD}")
     else:
         print("⚠️ Model classes information not available")
@@ -112,6 +129,20 @@ class DetectionResult:
 
 import uuid
 
+
+def normalize_class_name(raw_class_name: str) -> Optional[str]:
+    """Map model class names to canonical API classes: sack/box."""
+    return CLASS_ALIASES.get(raw_class_name.strip().lower())
+
+
+def class_threshold(canonical_class_name: str) -> float:
+    if canonical_class_name == "sack":
+        return CONFIDENCE_THRESHOLD
+    if canonical_class_name == "box":
+        return BOX_CONFIDENCE_THRESHOLD
+    return 1.0
+
+
 def draw_bounding_boxes(image: np.ndarray, detections: List[Detection]) -> np.ndarray:
     """Draw bounding boxes and labels on image with different colors for each class"""
     img_pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -149,6 +180,36 @@ def draw_bounding_boxes(image: np.ndarray, detections: List[Detection]) -> np.nd
 
         # Draw label text
         draw.text((x1 + 5, y1 - text_height - 2), label, fill="white", font=font)
+
+    # Summary text at top-left: class counts from current detections
+    class_counter = Counter(det.class_name for det in detections)
+    summary_lines = [f"{class_name}: {count}" for class_name, count in sorted(class_counter.items())]
+    if not summary_lines:
+        summary_lines = ["no detections"]
+
+    text_padding = 8
+    line_gap = 4
+    max_width = 0
+    total_height = text_padding
+    for line in summary_lines:
+        line_bbox = draw.textbbox((0, 0), line, font=font)
+        line_width = line_bbox[2] - line_bbox[0]
+        line_height = line_bbox[3] - line_bbox[1]
+        max_width = max(max_width, line_width)
+        total_height += line_height + line_gap
+
+    box_x1, box_y1 = 10, 10
+    box_x2 = box_x1 + max_width + (text_padding * 2)
+    box_y2 = box_y1 + total_height + text_padding - line_gap
+
+    draw.rectangle([box_x1, box_y1, box_x2, box_y2], fill=(0, 0, 0, 160))
+
+    text_y = box_y1 + text_padding
+    for line in summary_lines:
+        draw.text((box_x1 + text_padding, text_y), line, fill="white", font=font)
+        line_bbox = draw.textbbox((0, 0), line, font=font)
+        line_height = line_bbox[3] - line_bbox[1]
+        text_y += line_height + line_gap
 
     return cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
 
@@ -213,21 +274,22 @@ async def detect_objects(
             if boxes is not None:
                 for box in boxes:
                     class_id = int(box.cls[0])
-                    class_name = model.names[class_id]
+                    raw_class_name = model.names[class_id]
+                    class_name = normalize_class_name(raw_class_name)
                     confidence = float(box.conf[0])
 
+                    if class_name is None:
+                        continue
+
                     # Filter with different confidence thresholds for sack and box
-                    if (class_name == "sack" and confidence > CONFIDENCE_THRESHOLD) or \
-                       (class_name == "box" and confidence > BOX_CONFIDENCE_THRESHOLD):
+                    if confidence > class_threshold(class_name):
                         x1, y1, x2, y2 = box.xyxy[0].tolist()
 
-                        # Count objects by class - use exact class names from model
+                        # Count objects by canonical class names
                         if class_name == "sack":
                             sack_count += 1
                         elif class_name == "box":
                             box_count += 1
-                        else:
-                            print(f"⚠️ Unknown class detected: '{class_name}' (expected 'sack' or 'box')")
 
                         total_count += 1
 
@@ -355,11 +417,12 @@ async def detect_sacks_only(
             if boxes is not None:
                 for box in boxes:
                     class_id = int(box.cls[0])
-                    class_name = model.names[class_id]
+                    raw_class_name = model.names[class_id]
+                    class_name = normalize_class_name(raw_class_name)
                     confidence = float(box.conf[0])
 
                     # Filter only sacks with confidence threshold
-                    if class_name == "sack" and confidence > CONFIDENCE_THRESHOLD:
+                    if class_name == "sack" and confidence > class_threshold("sack"):
                         sack_count += 1
                         x1, y1, x2, y2 = box.xyxy[0].tolist()
 
@@ -469,11 +532,12 @@ async def detect_boxes_only(
             if boxes is not None:
                 for box in boxes:
                     class_id = int(box.cls[0])
-                    class_name = model.names[class_id]
+                    raw_class_name = model.names[class_id]
+                    class_name = normalize_class_name(raw_class_name)
                     confidence = float(box.conf[0])
 
                     # Filter only boxes with confidence threshold (20% for boxes)
-                    if class_name == "box" and confidence > BOX_CONFIDENCE_THRESHOLD:
+                    if class_name == "box" and confidence > class_threshold("box"):
                         box_count += 1
                         x1, y1, x2, y2 = box.xyxy[0].tolist()
 
@@ -558,12 +622,12 @@ async def health_check():
         model_info = {
             "model_loaded": True,
             "model_classes": model.names,
-            "model_path": "best.pt"
+            "model_path": MODEL_PATH
         }
     else:
         model_info = {
             "model_loaded": model is not None,
-            "model_path": "best.pt"
+            "model_path": MODEL_PATH
         }
 
     # Add MinIO status
@@ -582,7 +646,7 @@ async def model_info():
         raise HTTPException(status_code=500, detail="Model not loaded")
 
     info = {
-        "model_path": "best.pt",
+        "model_path": MODEL_PATH,
         "model_type": "YOLO",
         "framework": "PyTorch",
         "confidence_threshold": CONFIDENCE_THRESHOLD,

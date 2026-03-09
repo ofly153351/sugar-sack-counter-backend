@@ -39,8 +39,14 @@ curl -X GET "http://localhost:3000/vehicle-types/options" \
 ตัวอย่าง options ที่ map แล้ว:
 ```json
 [
-  { "value": "uuid-string", "label": "รถบรรทุก 10 ล้อ" },
-  { "value": "uuid-string-2", "label": "รถบรรทุก 6 ล้อ" }
+  {
+    "value": "uuid-string",
+    "label": "รถบรรทุก 10 ล้อ"
+  },
+  {
+    "value": "uuid-string-2",
+    "label": "รถบรรทุก 6 ล้อ"
+  }
 ]
 ```
 

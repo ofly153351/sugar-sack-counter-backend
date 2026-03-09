@@ -47,6 +47,7 @@ export class VehicleController {
         driverName: "สมชาย ใจดี",
         status: "active",
         vehicleTypeId: "uuid-string",
+        maxLoadWeightTon: 30,
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
@@ -97,6 +98,7 @@ export class VehicleController {
           driverName: "สมชาย ใจดี",
           status: "active",
           vehicleTypeId: "uuid-string",
+        maxLoadWeightTon: 30,
           vehicleType: {
             id: "uuid-string",
             name: "รถบรรทุก 10 ล้อ",
@@ -137,6 +139,7 @@ export class VehicleController {
           driverName: "สมชาย ใจดี",
           status: "active",
           vehicleTypeId: "uuid-string",
+        maxLoadWeightTon: 30,
           vehicleType: {
             id: "uuid-string",
             name: "รถบรรทุก 10 ล้อ",
@@ -178,6 +181,7 @@ export class VehicleController {
         driverName: "สมชาย ใจดี",
         status: "active",
         vehicleTypeId: "uuid-string",
+        maxLoadWeightTon: 30,
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
@@ -223,6 +227,7 @@ export class VehicleController {
         driverName: "สมหญิง ใจดี",
         status: "active",
         vehicleTypeId: "uuid-string",
+        maxLoadWeightTon: 30,
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
@@ -312,6 +317,7 @@ export class VehicleController {
         driverName: "สมชาย ใจดี",
         status: "active",
         vehicleTypeId: "uuid-string",
+        maxLoadWeightTon: 30,
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",
@@ -356,6 +362,7 @@ export class VehicleController {
         driverName: "สมชาย ใจดี",
         status: "active",
         vehicleTypeId: "uuid-string",
+        maxLoadWeightTon: 30,
         vehicleType: {
           id: "uuid-string",
           name: "รถบรรทุก 10 ล้อ",

@@ -4,8 +4,11 @@ import {
   IsOptional,
   IsUUID,
   IsEnum,
+  IsNumber,
+  Min,
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 
 export class CreateVehicleDto {
   @ApiProperty({
@@ -34,6 +37,16 @@ export class CreateVehicleDto {
   @IsUUID()
   @IsNotEmpty()
   vehicleTypeId: string;
+
+  @ApiProperty({
+    description: "น้ำหนักบรรทุกสูงสุด (ตัน)",
+    example: 30,
+    required: true,
+  })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maxLoadWeightTon: number;
 
   @ApiProperty({
     description: "ID ของผู้ขับรถ (user ในระบบ)",

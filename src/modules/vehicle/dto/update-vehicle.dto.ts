@@ -1,7 +1,8 @@
 import { PartialType } from "@nestjs/mapped-types";
 import { CreateVehicleDto } from "./create-vehicle.dto";
-import { IsOptional, IsString, IsEnum, IsUUID } from "class-validator";
+import { IsOptional, IsString, IsEnum, IsUUID, IsNumber, Min } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 
 export class UpdateVehicleDto extends PartialType(CreateVehicleDto) {
   @ApiPropertyOptional({
@@ -27,6 +28,16 @@ export class UpdateVehicleDto extends PartialType(CreateVehicleDto) {
   @IsOptional()
   @IsString()
   vehicleTypeId?: string;
+
+  @ApiPropertyOptional({
+    description: "น้ำหนักบรรทุกสูงสุด (ตัน)",
+    example: 35,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maxLoadWeightTon?: number;
 
   @ApiPropertyOptional({
     description: "ID ของผู้ขับรถ (user ในระบบ)",

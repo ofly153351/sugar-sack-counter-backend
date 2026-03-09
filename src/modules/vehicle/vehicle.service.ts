@@ -13,7 +13,14 @@ export class VehicleService {
   constructor(private database: DatabaseService) {}
 
   async create(createVehicleDto: CreateVehicleDto) {
-    const { vehicleCode, licensePlate, vehicleTypeId, driverUserId, status } =
+    const {
+      vehicleCode,
+      licensePlate,
+      vehicleTypeId,
+      maxLoadWeightTon,
+      driverUserId,
+      status,
+    } =
       createVehicleDto;
 
     // Check for duplicate vehicle code
@@ -64,6 +71,7 @@ export class VehicleService {
         vehicleCode,
         licensePlate,
         vehicleTypeId,
+        maxLoadWeightTon,
         driverUserId,
         driverName,
         status: status || "active",

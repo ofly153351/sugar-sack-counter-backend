@@ -53,11 +53,11 @@ model UserProfile {
 }
 
 model VehicleType {
-  id          String    @id @default(uuid())
-  name        String
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
-  vehicles    Vehicle[]
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  vehicles  Vehicle[]
 
   @@map("vehicle_types")
 }
@@ -67,6 +67,7 @@ model Vehicle {
   vehicleCode      String                @unique @map("vehicle_code")
   licensePlate     String                @unique @map("license_plate")
   vehicleTypeId    String                @map("vehicle_type_id")
+  maxLoadWeightTon Float                 @map("max_load_weight_ton")
   driverUserId     String?               @map("driver_user_id")
   driverName       String                @map("driver_name")
   status           String                @default("active")

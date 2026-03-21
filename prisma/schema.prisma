@@ -68,6 +68,7 @@ model Vehicle {
   licensePlate     String                @unique @map("license_plate")
   vehicleTypeId    String                @map("vehicle_type_id")
   maxLoadWeightTon Float                 @map("max_load_weight_ton")
+  vehicleRowConf   Json                  @default("[]") @map("vehicle_row_conf")
   driverUserId     String?               @map("driver_user_id")
   driverName       String                @map("driver_name")
   status           String                @default("active")

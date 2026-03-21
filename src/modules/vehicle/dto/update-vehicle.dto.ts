@@ -1,8 +1,18 @@
 import { PartialType } from "@nestjs/mapped-types";
 import { CreateVehicleDto } from "./create-vehicle.dto";
-import { IsOptional, IsString, IsEnum, IsUUID, IsNumber, Min } from "class-validator";
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsUUID,
+  IsNumber,
+  Min,
+  IsArray,
+  ValidateNested,
+} from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
+import { VehicleSackRowInputDto } from "./vehicle-sack-row-input.dto";
 
 export class UpdateVehicleDto extends PartialType(CreateVehicleDto) {
   @ApiPropertyOptional({
@@ -56,4 +66,32 @@ export class UpdateVehicleDto extends PartialType(CreateVehicleDto) {
   @IsString()
   @IsEnum(["active", "inactive", "maintenance"])
   status?: string;
+
+  @ApiPropertyOptional({
+    description: "config จำนวนกระสอบต่อแถว (replace ทั้งชุด)",
+    type: [VehicleSackRowInputDto],
+    example: [
+      { rowNumber: 1, sackCount: 22 },
+      { rowNumber: 2, sackCount: 19 },
+    ],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => VehicleSackRowInputDto)
+  sackRows?: VehicleSackRowInputDto[];
+
+  @ApiPropertyOptional({
+    description: "alias ของ sackRows",
+    type: [VehicleSackRowInputDto],
+    example: [
+      { rowNumber: 1, bagCount: 22 },
+      { rowNumber: 2, bagCount: 19 },
+    ],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => VehicleSackRowInputDto)
+  bagRows?: VehicleSackRowInputDto[];
 }

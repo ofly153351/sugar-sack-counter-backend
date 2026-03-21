@@ -8,9 +8,125 @@ import { DatabaseService } from "../../database/database.service";
 import { CreateVehicleDto } from "./dto/create-vehicle.dto";
 import { UpdateVehicleDto } from "./dto/update-vehicle.dto";
 
+type SackRowInput = {
+  rowNumber: number;
+  sackCount?: number;
+  bagCount?: number;
+};
+
+type SackRow = {
+  rowNumber: number;
+  sackCount: number;
+};
+
 @Injectable()
 export class VehicleService {
   constructor(private database: DatabaseService) {}
+
+  private getVehicleInclude() {
+    return {
+      vehicleType: true,
+      driver: {
+        select: {
+          id: true,
+          username: true,
+          profile: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    };
+  }
+
+  private normalizeSackRows(
+    sackRows?: SackRowInput[],
+    bagRows?: SackRowInput[],
+  ): SackRow[] | null {
+    if (sackRows === undefined && bagRows === undefined) {
+      return null;
+    }
+
+    const sourceRows = sackRows ?? bagRows ?? [];
+    if (!Array.isArray(sourceRows)) {
+      throw new BadRequestException("sackRows/bagRows must be an array");
+    }
+
+    const normalized = sourceRows.map((row, index) => {
+      const sackCount = row.sackCount ?? row.bagCount;
+
+      if (!Number.isInteger(row.rowNumber) || row.rowNumber <= 0) {
+        throw new BadRequestException(
+          `Invalid rowNumber at index ${index}: must be integer > 0`,
+        );
+      }
+
+      if (sackCount === undefined) {
+        throw new BadRequestException(
+          `Missing sackCount/bagCount at index ${index}`,
+        );
+      }
+
+      if (!Number.isInteger(sackCount) || sackCount < 0) {
+        throw new BadRequestException(
+          `Invalid sackCount/bagCount at index ${index}: must be integer >= 0`,
+        );
+      }
+
+      return {
+        rowNumber: row.rowNumber,
+        sackCount,
+      };
+    });
+
+    const rowNumberSet = new Set<number>();
+    for (const row of normalized) {
+      if (rowNumberSet.has(row.rowNumber)) {
+        throw new BadRequestException(`Duplicate rowNumber: ${row.rowNumber}`);
+      }
+      rowNumberSet.add(row.rowNumber);
+    }
+
+    return normalized.sort((a, b) => a.rowNumber - b.rowNumber);
+  }
+
+  private parseVehicleRowConf(vehicleRowConf: unknown): SackRow[] {
+    if (!Array.isArray(vehicleRowConf)) {
+      return [];
+    }
+
+    const rows: SackRow[] = [];
+    for (const row of vehicleRowConf as any[]) {
+      if (
+        row &&
+        Number.isInteger(row.rowNumber) &&
+        row.rowNumber > 0 &&
+        Number.isInteger(row.sackCount) &&
+        row.sackCount >= 0
+      ) {
+        rows.push({ rowNumber: row.rowNumber, sackCount: row.sackCount });
+      }
+    }
+    return rows.sort((a, b) => a.rowNumber - b.rowNumber);
+  }
+
+  private formatVehicleResponse(vehicle: any) {
+    const sackRows = this.parseVehicleRowConf(vehicle.vehicleRowConf);
+    const bagRows = sackRows.map((row) => ({
+      rowNumber: row.rowNumber,
+      bagCount: row.sackCount,
+    }));
+    const totalSacks = sackRows.reduce((sum, row) => sum + row.sackCount, 0);
+
+    return {
+      ...vehicle,
+      sackRows,
+      bagRows,
+      totalSacks,
+    };
+  }
 
   async create(createVehicleDto: CreateVehicleDto) {
     const {
@@ -20,33 +136,30 @@ export class VehicleService {
       maxLoadWeightTon,
       driverUserId,
       status,
-    } =
-      createVehicleDto;
+      sackRows,
+      bagRows,
+    } = createVehicleDto;
 
-    // Check for duplicate vehicle code
+    const normalizedSackRows = this.normalizeSackRows(sackRows, bagRows) ?? [];
+
     const existingVehicleWithCode = await this.database.vehicle.findUnique({
       where: { vehicleCode },
     });
-
     if (existingVehicleWithCode) {
       throw new ConflictException("Vehicle code already exists");
     }
 
-    // Check for duplicate license plate
     const existingVehicleWithLicensePlate =
       await this.database.vehicle.findUnique({
         where: { licensePlate },
       });
-
     if (existingVehicleWithLicensePlate) {
       throw new ConflictException("License plate already exists");
     }
 
-    // Check if vehicle type exists
     const vehicleType = await this.database.vehicleType.findUnique({
       where: { id: vehicleTypeId },
     });
-
     if (!vehicleType) {
       throw new NotFoundException(`Vehicle type with ID ${vehicleTypeId} not found`);
     }
@@ -55,7 +168,6 @@ export class VehicleService {
       where: { id: driverUserId },
       include: { profile: true },
     });
-
     if (!driverUser) {
       throw new NotFoundException(`Driver user with ID ${driverUserId} not found`);
     }
@@ -72,122 +184,61 @@ export class VehicleService {
         licensePlate,
         vehicleTypeId,
         maxLoadWeightTon,
+        vehicleRowConf: normalizedSackRows,
         driverUserId,
         driverName,
         status: status || "active",
       },
-      include: {
-        vehicleType: true,
-        driver: {
-          select: {
-            id: true,
-            username: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.getVehicleInclude(),
     });
 
-    return vehicle;
+    return this.formatVehicleResponse(vehicle);
   }
 
   async findAll() {
     const vehicles = await this.database.vehicle.findMany({
-      include: {
-        vehicleType: true,
-        driver: {
-          select: {
-            id: true,
-            username: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.getVehicleInclude(),
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    return vehicles;
+    return vehicles.map((vehicle) => this.formatVehicleResponse(vehicle));
   }
 
   async findOne(id: string) {
     const vehicle = await this.database.vehicle.findUnique({
       where: { id },
-      include: {
-        vehicleType: true,
-        driver: {
-          select: {
-            id: true,
-            username: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.getVehicleInclude(),
     });
 
     if (!vehicle) {
       throw new NotFoundException(`Vehicle with ID ${id} not found`);
     }
 
-    return vehicle;
+    return this.formatVehicleResponse(vehicle);
   }
 
   async findByVehicleCode(vehicleCode: string) {
-    return this.database.vehicle.findUnique({
+    const vehicle = await this.database.vehicle.findUnique({
       where: { vehicleCode },
-      include: {
-        vehicleType: true,
-        driver: {
-          select: {
-            id: true,
-            username: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.getVehicleInclude(),
     });
+    if (!vehicle) {
+      return null;
+    }
+    return this.formatVehicleResponse(vehicle);
   }
 
   async findByLicensePlate(licensePlate: string) {
-    return this.database.vehicle.findUnique({
+    const vehicle = await this.database.vehicle.findUnique({
       where: { licensePlate },
-      include: {
-        vehicleType: true,
-        driver: {
-          select: {
-            id: true,
-            username: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.getVehicleInclude(),
     });
+    if (!vehicle) {
+      return null;
+    }
+    return this.formatVehicleResponse(vehicle);
   }
 
   async update(id: string, updateVehicleDto: UpdateVehicleDto) {
@@ -199,38 +250,41 @@ export class VehicleService {
       throw new NotFoundException(`Vehicle with ID ${id} not found`);
     }
 
-    const { vehicleCode, licensePlate, vehicleTypeId, driverUserId, ...updateData } =
-      updateVehicleDto;
+    const {
+      vehicleCode,
+      licensePlate,
+      vehicleTypeId,
+      driverUserId,
+      sackRows,
+      bagRows,
+      ...updateData
+    } = updateVehicleDto;
 
-    // Check for duplicate vehicle code if being updated
+    const normalizedSackRows = this.normalizeSackRows(sackRows, bagRows);
+
     if (vehicleCode && vehicleCode !== vehicle.vehicleCode) {
       const existingVehicleWithCode = await this.database.vehicle.findUnique({
         where: { vehicleCode },
       });
-
       if (existingVehicleWithCode) {
         throw new ConflictException("Vehicle code already exists");
       }
     }
 
-    // Check for duplicate license plate if being updated
     if (licensePlate && licensePlate !== vehicle.licensePlate) {
       const existingVehicleWithLicensePlate =
         await this.database.vehicle.findUnique({
           where: { licensePlate },
         });
-
       if (existingVehicleWithLicensePlate) {
         throw new ConflictException("License plate already exists");
       }
     }
 
-    // Check if vehicle type exists if being updated
     if (vehicleTypeId && vehicleTypeId !== vehicle.vehicleTypeId) {
       const vehicleType = await this.database.vehicleType.findUnique({
         where: { id: vehicleTypeId },
       });
-
       if (!vehicleType) {
         throw new NotFoundException(
           `Vehicle type with ID ${vehicleTypeId} not found`,
@@ -265,25 +319,12 @@ export class VehicleService {
         ...(vehicleTypeId && { vehicleTypeId }),
         ...(driverUserId && { driverUserId }),
         ...(resolvedDriverName && { driverName: resolvedDriverName }),
+        ...(normalizedSackRows !== null && { vehicleRowConf: normalizedSackRows }),
       },
-      include: {
-        vehicleType: true,
-        driver: {
-          select: {
-            id: true,
-            username: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.getVehicleInclude(),
     });
 
-    return updatedVehicle;
+    return this.formatVehicleResponse(updatedVehicle);
   }
 
   async remove(id: string) {
@@ -295,15 +336,12 @@ export class VehicleService {
       throw new NotFoundException(`Vehicle with ID ${id} not found`);
     }
 
-    // Check if vehicle has any counting sessions
     const hasSackSessions = await this.database.sackCountingSession.findFirst({
       where: { vehicleId: id },
     });
-
     const hasBoxSessions = await this.database.boxCountingSession.findFirst({
       where: { vehicleId: id },
     });
-
     const hasCountingSessions = await this.database.countingSession.findFirst({
       where: { vehicleId: id },
     });
@@ -324,27 +362,13 @@ export class VehicleService {
   async getActiveVehicles() {
     const vehicles = await this.database.vehicle.findMany({
       where: { status: "active" },
-      include: {
-        vehicleType: true,
-        driver: {
-          select: {
-            id: true,
-            username: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.getVehicleInclude(),
       orderBy: {
         vehicleCode: "asc",
       },
     });
 
-    return vehicles;
+    return vehicles.map((vehicle) => this.formatVehicleResponse(vehicle));
   }
 
   async getVehiclesByStatus(status: string) {
@@ -358,26 +382,12 @@ export class VehicleService {
 
     const vehicles = await this.database.vehicle.findMany({
       where: { status },
-      include: {
-        vehicleType: true,
-        driver: {
-          select: {
-            id: true,
-            username: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.getVehicleInclude(),
       orderBy: {
         vehicleCode: "asc",
       },
     });
 
-    return vehicles;
+    return vehicles.map((vehicle) => this.formatVehicleResponse(vehicle));
   }
 }

@@ -1,82 +1,82 @@
 # sugar-sack-counter-backend
 
-Backend สำหรับระบบนับกระสอบ/กล่องน้ำตาล พัฒนาด้วย NestJS + Prisma + PostgreSQL และมีบริการ Python แยกสำหรับงาน AI ตรวจจับภาพ
+Backend for the Sugar Sack/Box Counting system, built with NestJS + Prisma + PostgreSQL, with a separate Python service for AI image detection.
 
 ## Project Structure
 
 ```text
 sugar-sack-counter-backend/
-├── src/                          # โค้ดหลักของ NestJS
-│   ├── main.ts                   # Entry point ของแอป
-│   ├── app.module.ts             # Root module รวมทุก feature module
-│   ├── app.controller.ts         # Endpoint พื้นฐานของระบบ
-│   ├── app.service.ts            # Service พื้นฐาน
+├── src/                          # Main NestJS source code
+│   ├── main.ts                   # Application entry point
+│   ├── app.module.ts             # Root module that wires feature modules
+│   ├── app.controller.ts         # Base/system-level endpoints
+│   ├── app.service.ts            # Base/system-level service
 │   ├── health.ts                 # Health check helper
-│   ├── config/                   # Config ของระบบ (app, db, swagger)
-│   ├── common/                   # Shared code เช่น guards/decorators
-│   │   ├── decorators/           # Custom decorators (เช่น roles)
-│   │   └── guards/               # Auth/Role guards
+│   ├── config/                   # App, database, and Swagger configuration
+│   ├── common/                   # Shared code (guards/decorators)
+│   │   ├── decorators/           # Custom decorators (for example: roles)
+│   │   └── guards/               # Auth/role guards
 │   ├── database/                 # Prisma database module/service
-│   ├── modules/                  # Domain modules (feature-based)
+│   ├── modules/                  # Domain feature modules
 │   │   ├── auth/                 # Login/JWT/Passport strategies
-│   │   ├── user/                 # จัดการผู้ใช้งาน
-│   │   ├── admin/                # Endpoint ฝั่ง admin
-│   │   ├── vehicle/              # จัดการรถ
-│   │   ├── vehicle-type/         # ประเภทรถ
-│   │   ├── sugar-type/           # ประเภทน้ำตาล
-│   │   ├── counting-session/     # Session กลางของการนับ
-│   │   ├── sack-row/             # แถวการนับแบบกระสอบ
-│   │   ├── box-row/              # แถวการนับแบบกล่อง
-│   │   ├── ai-detector/          # เรียกใช้งาน AI detector
-│   │   ├── minio/                # จัดการไฟล์ภาพกับ MinIO
-│   │   ├── operator/             # Endpoint/operator เฉพาะงาน
-│   │   ├── sack-counting-session/# DTO สำหรับ session กระสอบ
-│   │   └── image/                # โฟลเดอร์เตรียมไว้สำหรับ image module
-│   └── utils/                    # Utility functions เช่น logger/password
+│   │   ├── user/                 # User management
+│   │   ├── admin/                # Admin endpoints
+│   │   ├── vehicle/              # Vehicle management
+│   │   ├── vehicle-type/         # Vehicle type management
+│   │   ├── sugar-type/           # Sugar type management
+│   │   ├── counting-session/     # Central counting session module
+│   │   ├── sack-row/             # Sack row counting records
+│   │   ├── box-row/              # Box row counting records
+│   │   ├── ai-detector/          # AI detector integration
+│   │   ├── minio/                # Image/file handling with MinIO
+│   │   ├── operator/             # Operator-specific endpoints
+│   │   ├── sack-counting-session/# DTOs for sack counting sessions
+│   │   └── image/                # Reserved folder for image module work
+│   └── utils/                    # Utility helpers (logger/password, etc.)
 ├── prisma/
-│   ├── schema.prisma             # Prisma schema/model ทั้งหมด
-│   └── migrations/               # ไฟล์ migration
+│   ├── schema.prisma             # Prisma schema and data models
+│   └── migrations/               # Migration files
 ├── scripts/
-│   └── seed-database.js          # Seed data เข้าฐานข้อมูล
+│   └── seed-database.js          # Database seed script
 ├── seed/
 │   └── seed_data.sql             # SQL seed data
-├── python-ai-service/            # บริการ AI แยก (Python)
-│   ├── main.py                   # API/logic หลักของ AI service
-│   ├── minio_client.py           # เชื่อม MinIO ฝั่ง Python
+├── python-ai-service/            # Separate Python AI service
+│   ├── main.py                   # Main API/logic for AI service
+│   ├── minio_client.py           # MinIO integration on Python side
 │   ├── requirements.txt          # Python dependencies
-│   ├── env.example               # ตัวอย่าง env ของ Python service
+│   ├── env.example               # Python service environment template
 │   └── *.pt / *.onnx             # Model files
-├── deploy/                       # ไฟล์ deploy และ nginx config
+├── deploy/                       # Deployment and nginx config files
 │   ├── docker-compose.*.yml
 │   └── nginx/nginx.conf
-├── docs/                         # เอกสาร architecture/flow/API เพิ่มเติม
-├── docker-compose.yml            # compose หลักสำหรับ local
-├── Dockerfile.prod               # image สำหรับ production
-├── package.json                  # scripts และ dependencies ของ Node/Nest
-├── env.template                  # template env ของ backend
-└── API_DOCUMENTATION.md          # เอกสาร API แบบสรุป
+├── docs/                         # Extra architecture/flow/API documents
+├── docker-compose.yml            # Main local docker compose file
+├── Dockerfile.prod               # Production Docker image file
+├── package.json                  # Node/Nest scripts and dependencies
+├── env.template                  # Backend environment template
+└── API_DOCUMENTATION.md          # API documentation summary
 ```
 
-## โครงสร้างภายใน `src/modules`
+## Inside `src/modules`
 
-แนวทางของโปรเจกต์คือแยกตาม feature/domain โดยแต่ละ module มักประกอบด้วย:
+The project follows a feature/domain-based structure. Most modules contain:
 
-- `*.module.ts` สำหรับประกาศ module
-- `*.controller.ts` สำหรับ HTTP routes
-- `*.service.ts` สำหรับ business logic
-- `dto/` สำหรับ request/response schema และ validation
-- `entities/` (บาง module) สำหรับรูปแบบข้อมูลตอบกลับหรือ model ชั้นกลาง
+- `*.module.ts` for module registration
+- `*.controller.ts` for HTTP routes
+- `*.service.ts` for business logic
+- `dto/` for request/response schemas and validation
+- `entities/` (in some modules) for internal response/data shapes
 
-## ไฟล์สำคัญที่ควรรู้
+## Key Files You Should Know
 
-- `src/main.ts`: bootstrap แอป, ตั้ง global prefix `/api`, CORS, validation, Swagger
-- `src/app.module.ts`: จุดรวม module ทั้งหมดของระบบ
-- `src/database/database.service.ts`: Prisma client และ lifecycle connect/disconnect
-- `prisma/schema.prisma`: โครงสร้างตารางหลัก เช่น `users`, `vehicles`, `sack_rows`, `box_rows`, `counting_sessions`
-- `scripts/seed-database.js`: สคริปต์เติมข้อมูลเริ่มต้น
+- `src/main.ts`: app bootstrap, global prefix `/api`, CORS, validation, Swagger
+- `src/app.module.ts`: root module that imports all features
+- `src/database/database.service.ts`: Prisma client and connect/disconnect lifecycle
+- `prisma/schema.prisma`: core DB models such as `users`, `vehicles`, `sack_rows`, `box_rows`, `counting_sessions`
+- `scripts/seed-database.js`: initial data seeding script
 
-## หมายเหตุด้านโครงสร้าง
+## Structure Notes
 
-- มีทั้งฝั่ง `NestJS API` และ `python-ai-service` อยู่ใน repository เดียวกัน (monorepo แบบง่าย)
-- บางโฟลเดอร์ใน `src/modules` ถูกสร้างเตรียมไว้แต่ยังไม่มี implementation ครบทุกไฟล์
-- เอกสารการใช้งานเชิงลึกอยู่ในโฟลเดอร์ `docs/` และไฟล์ markdown ระดับ root
+- This repository contains both the `NestJS API` and the `python-ai-service` (simple monorepo style)
+- Some folders under `src/modules` are scaffolded/reserved and may not yet have full implementation
+- More detailed usage and architecture docs are available in `docs/` and root-level markdown files

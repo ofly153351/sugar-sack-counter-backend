@@ -1,11 +1,14 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as Minio from "minio";
+import { Readable } from "stream";
 
 @Injectable()
 export class MinioService {
   private readonly logger = new Logger(MinioService.name);
   private minioClient: Minio.Client;
   private bucketName: string;
+
+  private publicUrl: string | null;
 
   constructor() {
     // Load configuration from environment variables
@@ -15,6 +18,7 @@ export class MinioService {
     const secretKey = process.env.MINIO_SECRET_KEY || "minioadmin";
     const useSSL = process.env.MINIO_USE_SSL === "true";
     this.bucketName = process.env.MINIO_BUCKET_NAME || "sugar-sacks";
+    this.publicUrl = process.env.MINIO_PUBLIC_URL || null;
 
     // Initialize MinIO client
     this.minioClient = new Minio.Client({
@@ -29,6 +33,10 @@ export class MinioService {
       `MinIO client initialized for ${endpoint}:${port} (SSL: ${useSSL})`,
     );
     this.logger.log(`Using bucket: ${this.bucketName}`);
+  }
+
+  private normalizeObjectName(objectName: string): string {
+    return objectName.startsWith("/") ? objectName.substring(1) : objectName;
   }
 
   /**
@@ -47,15 +55,23 @@ export class MinioService {
 
     try {
       // Remove leading slash if present
-      const cleanObjectName = objectName.startsWith("/")
-        ? objectName.substring(1)
-        : objectName;
+      const cleanObjectName = this.normalizeObjectName(objectName);
 
-      const url = await this.minioClient.presignedGetObject(
+      let url = await this.minioClient.presignedGetObject(
         this.bucketName,
         cleanObjectName,
         expirySeconds,
       );
+
+      // Replace internal host with public URL so external clients (e.g. LINE) can access it
+      if (this.publicUrl) {
+        const generated = new URL(url);
+        const pub = new URL(this.publicUrl);
+        generated.protocol = pub.protocol;
+        generated.hostname = pub.hostname;
+        generated.port = pub.port;
+        url = generated.toString();
+      }
 
       this.logger.debug(`Generated presigned URL for: ${cleanObjectName}`);
       return url;
@@ -104,9 +120,7 @@ export class MinioService {
     }
 
     try {
-      const cleanObjectName = objectName.startsWith("/")
-        ? objectName.substring(1)
-        : objectName;
+      const cleanObjectName = this.normalizeObjectName(objectName);
 
       await this.minioClient.statObject(this.bucketName, cleanObjectName);
       return true;
@@ -130,9 +144,7 @@ export class MinioService {
       return;
     }
 
-    const cleanObjectName = objectName.startsWith("/")
-      ? objectName.substring(1)
-      : objectName;
+    const cleanObjectName = this.normalizeObjectName(objectName);
 
     try {
       await this.minioClient.removeObject(this.bucketName, cleanObjectName);
@@ -168,5 +180,15 @@ export class MinioService {
    */
   getBucketName(): string {
     return this.bucketName;
+  }
+
+  async getObjectStat(objectName: string): Promise<Minio.BucketItemStat> {
+    const cleanObjectName = this.normalizeObjectName(objectName);
+    return this.minioClient.statObject(this.bucketName, cleanObjectName);
+  }
+
+  async getObjectStream(objectName: string): Promise<Readable> {
+    const cleanObjectName = this.normalizeObjectName(objectName);
+    return this.minioClient.getObject(this.bucketName, cleanObjectName);
   }
 }

@@ -4,9 +4,7 @@
 -- Insert default roles
 INSERT INTO roles (id, name, description, created_at, updated_at) VALUES
 ('550e8400-e29b-41d4-a716-446655440000', 'admin', 'Administrator role with full access', NOW(), NOW()),
-('550e8400-e29b-41d4-a716-446655440001', 'user', 'Regular user role with basic access', NOW(), NOW()),
-('550e8400-e29b-41d4-a716-446655440002', 'operator', 'Operator role for counting operations', NOW(), NOW()),
-('550e8400-e29b-41d4-a716-446655440003', 'viewer', 'View-only role for monitoring', NOW(), NOW())
+('550e8400-e29b-41d4-a716-446655440001', 'user', 'Regular user role with basic access', NOW(), NOW())
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert default admin user (password: admin123)

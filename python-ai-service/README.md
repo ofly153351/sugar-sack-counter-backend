@@ -4,18 +4,25 @@ FastAPI-based AI service for detecting sugar sacks and boxes using YOLOv8 custom
 
 ## 🚀 Quick Start
 
+### Prerequisites
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) — fast Python package manager
+
+```bash
+# Install uv (if not installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 ### 1. Start the Service
 ```bash
 ./start.sh
 ```
 Or manually:
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python3 main.py
+uv venv
+uv pip install -r requirements.txt
+uv run python3 main.py
 ```
-      
+
 Service runs on: `http://localhost:8082`
 
 ### 2. Check Service Status
@@ -429,7 +436,7 @@ PORT=8082
    # Check port 8082
    lsof -ti:8082 | xargs kill -9
    # Restart service
-   python3 main.py
+   uv run python3 main.py
    ```
 
 2. **Model not loading**

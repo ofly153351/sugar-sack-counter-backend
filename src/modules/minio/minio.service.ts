@@ -1,12 +1,14 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as Minio from "minio";
+import { Readable } from "stream";
 
 @Injectable()
 export class MinioService {
   private readonly logger = new Logger(MinioService.name);
   private minioClient: Minio.Client;
   private bucketName: string;
-  private publicBaseUrl: string | null;
+
+  private publicUrl: string | null;
 
   constructor() {
     // Load configuration from environment variables
@@ -16,7 +18,7 @@ export class MinioService {
     const secretKey = process.env.MINIO_SECRET_KEY || "minioadmin";
     const useSSL = process.env.MINIO_USE_SSL === "true";
     this.bucketName = process.env.MINIO_BUCKET_NAME || "sugar-sacks";
-    this.publicBaseUrl = process.env.MINIO_PUBLIC_URL || null;
+    this.publicUrl = process.env.MINIO_PUBLIC_URL || null;
 
     // Initialize MinIO client
     this.minioClient = new Minio.Client({
@@ -31,9 +33,10 @@ export class MinioService {
       `MinIO client initialized for ${endpoint}:${port} (SSL: ${useSSL})`,
     );
     this.logger.log(`Using bucket: ${this.bucketName}`);
-    if (this.publicBaseUrl) {
-      this.logger.log(`Using MinIO public URL: ${this.publicBaseUrl}`);
-    }
+  }
+
+  private normalizeObjectName(objectName: string): string {
+    return objectName.startsWith("/") ? objectName.substring(1) : objectName;
   }
 
   /**
@@ -52,18 +55,26 @@ export class MinioService {
 
     try {
       // Remove leading slash if present
-      const cleanObjectName = objectName.startsWith("/")
-        ? objectName.substring(1)
-        : objectName;
+      const cleanObjectName = this.normalizeObjectName(objectName);
 
-      const url = await this.minioClient.presignedGetObject(
+      let url = await this.minioClient.presignedGetObject(
         this.bucketName,
         cleanObjectName,
         expirySeconds,
       );
 
+      // Replace internal host with public URL so external clients (e.g. LINE) can access it
+      if (this.publicUrl) {
+        const generated = new URL(url);
+        const pub = new URL(this.publicUrl);
+        generated.protocol = pub.protocol;
+        generated.hostname = pub.hostname;
+        generated.port = pub.port;
+        url = generated.toString();
+      }
+
       this.logger.debug(`Generated presigned URL for: ${cleanObjectName}`);
-      return this.rewritePresignedUrl(url);
+      return url;
     } catch (error) {
       this.logger.error(
         `Failed to generate presigned URL for ${objectName}: ${error.message}`,
@@ -109,9 +120,7 @@ export class MinioService {
     }
 
     try {
-      const cleanObjectName = objectName.startsWith("/")
-        ? objectName.substring(1)
-        : objectName;
+      const cleanObjectName = this.normalizeObjectName(objectName);
 
       await this.minioClient.statObject(this.bucketName, cleanObjectName);
       return true;
@@ -135,9 +144,7 @@ export class MinioService {
       return;
     }
 
-    const cleanObjectName = objectName.startsWith("/")
-      ? objectName.substring(1)
-      : objectName;
+    const cleanObjectName = this.normalizeObjectName(objectName);
 
     try {
       await this.minioClient.removeObject(this.bucketName, cleanObjectName);
@@ -175,30 +182,13 @@ export class MinioService {
     return this.bucketName;
   }
 
-  private rewritePresignedUrl(url: string): string {
-    if (!this.publicBaseUrl) {
-      return url;
-    }
+  async getObjectStat(objectName: string): Promise<Minio.BucketItemStat> {
+    const cleanObjectName = this.normalizeObjectName(objectName);
+    return this.minioClient.statObject(this.bucketName, cleanObjectName);
+  }
 
-    try {
-      const signedUrl = new URL(url);
-      const baseUrl = new URL(this.publicBaseUrl);
-
-      signedUrl.protocol = baseUrl.protocol;
-      signedUrl.hostname = baseUrl.hostname;
-      signedUrl.port = baseUrl.port;
-
-      const basePath = baseUrl.pathname.replace(/\/$/, "");
-      if (basePath && basePath !== "/") {
-        signedUrl.pathname = `${basePath}${signedUrl.pathname}`;
-      }
-
-      return signedUrl.toString();
-    } catch (error) {
-      this.logger.warn(
-        `Failed to rewrite presigned URL with MINIO_PUBLIC_URL: ${error.message}`,
-      );
-      return url;
-    }
+  async getObjectStream(objectName: string): Promise<Readable> {
+    const cleanObjectName = this.normalizeObjectName(objectName);
+    return this.minioClient.getObject(this.bucketName, cleanObjectName);
   }
 }

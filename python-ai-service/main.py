@@ -45,7 +45,7 @@ app.add_middleware(
 # Load confidence thresholds from environment variables
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.45"))
 BOX_CONFIDENCE_THRESHOLD = float(os.getenv("BOX_CONFIDENCE_THRESHOLD", "0.2"))
-MODEL_PATH = os.getenv("MODEL_PATH", "bestTeacher.pt")
+MODEL_PATH = os.getenv("MODEL_PATH", "bestStudent.pt")
 SACK_CLASS_NAME = os.getenv("SACK_CLASS_NAME", "bag").strip().lower()
 BOX_CLASS_NAME = os.getenv("BOX_CLASS_NAME", "bbox").strip().lower()
 CLASS_ALIASES = {

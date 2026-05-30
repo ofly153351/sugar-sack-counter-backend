@@ -44,17 +44,13 @@ app.add_middleware(
 
 # Load confidence thresholds from environment variables
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.45"))
-BOX_CONFIDENCE_THRESHOLD = float(os.getenv("BOX_CONFIDENCE_THRESHOLD", "0.2"))
 MODEL_PATH = os.getenv("MODEL_PATH", "bestStudent.pt")
-SACK_CLASS_NAME = os.getenv("SACK_CLASS_NAME", "bag").strip().lower()
-BOX_CLASS_NAME = os.getenv("BOX_CLASS_NAME", "bbox").strip().lower()
+SACK_CLASS_NAME = os.getenv("SACK_CLASS_NAME", "sack").strip().lower()
 CLASS_ALIASES = {
     "sack": "sack",
-    "box": "box",
     SACK_CLASS_NAME: "sack",
-    BOX_CLASS_NAME: "box",
 }
-print(f"📊 Using confidence thresholds - Sack: {CONFIDENCE_THRESHOLD}, Box: {BOX_CONFIDENCE_THRESHOLD}")
+print(f"📊 Using confidence threshold - Sack: {CONFIDENCE_THRESHOLD}")
 
 # Load custom YOLO model
 try:
@@ -68,12 +64,8 @@ try:
             print(f"📋 Class 0: '{model.names[0]}'")
         except Exception:
             pass
-        try:
-            print(f"📋 Class 1: '{model.names[1]}'")
-        except Exception:
-            pass
-        print(f"🧭 Class mapping: {SACK_CLASS_NAME} -> sack, {BOX_CLASS_NAME} -> box")
-        print(f"⚠️ Note: Model may have low confidence scores. Using thresholds - Sack: {CONFIDENCE_THRESHOLD}, Box: {BOX_CONFIDENCE_THRESHOLD}")
+        print(f"🧭 Class mapping: {SACK_CLASS_NAME} -> sack")
+        print(f"⚠️ Note: Model may have low confidence scores. Using threshold - Sack: {CONFIDENCE_THRESHOLD}")
     else:
         print("⚠️ Model classes information not available")
 
@@ -108,7 +100,6 @@ class DetectionResult:
         detections: List[Detection],
         total_count: int,
         sack_count: int,
-        box_count: int,
         annotated_image: np.ndarray,
         original_image: np.ndarray,
         original_filename: str,
@@ -117,7 +108,6 @@ class DetectionResult:
         self.detections = detections
         self.total_count = total_count
         self.sack_count = sack_count
-        self.box_count = box_count
         self.annotated_image = annotated_image
         self.original_image = original_image
         self.original_filename = original_filename
@@ -134,16 +124,8 @@ import uuid
 
 
 def normalize_class_name(raw_class_name: str) -> Optional[str]:
-    """Map model class names to canonical API classes: sack/box."""
+    """Map model class names to canonical API class: sack."""
     return CLASS_ALIASES.get(raw_class_name.strip().lower())
-
-
-def class_threshold(canonical_class_name: str) -> float:
-    if canonical_class_name == "sack":
-        return CONFIDENCE_THRESHOLD
-    if canonical_class_name == "box":
-        return BOX_CONFIDENCE_THRESHOLD
-    return 1.0
 
 
 def draw_bounding_boxes(image: np.ndarray, detections: List[Detection]) -> np.ndarray:
@@ -269,8 +251,6 @@ async def detect_objects(
 
         detections = []
         sack_count = 0
-        box_count = 0
-        total_count = 0
 
         for result in results:
             boxes = result.boxes
@@ -284,18 +264,9 @@ async def detect_objects(
                     if class_name is None:
                         continue
 
-                    # Filter with different confidence thresholds for sack and box
-                    if confidence > class_threshold(class_name):
+                    if confidence > CONFIDENCE_THRESHOLD:
                         x1, y1, x2, y2 = box.xyxy[0].tolist()
-
-                        # Count objects by canonical class names
-                        if class_name == "sack":
-                            sack_count += 1
-                        elif class_name == "box":
-                            box_count += 1
-
-                        total_count += 1
-
+                        sack_count += 1
                         detections.append(
                             Detection(
                                 class_name=class_name,
@@ -311,9 +282,8 @@ async def detect_objects(
         # Create detection result object
         detection_result = DetectionResult(
             detections=detections,
-            total_count=total_count,
+            total_count=sack_count,
             sack_count=sack_count,
-            box_count=box_count,
             annotated_image=annotated_image,
             original_image=image,
             original_filename=file.filename,
@@ -367,13 +337,12 @@ async def detect_objects(
             for det in detections
         ]
 
-        print(f"📊 Detection summary: {total_count} total, {sack_count} sacks, {box_count} boxes")
+        print(f"📊 Detection summary: {sack_count} sacks")
 
         response_data = {
             "status": "success",
-            "total_count": total_count,
+            "total_count": sack_count,
             "sack_count": sack_count,
-            "box_count": box_count,
             "annotated_image": base64_image,
             "detections": serializable_detections,
             "session_id": session_id,
@@ -424,8 +393,7 @@ async def detect_sacks_only(
                     class_name = normalize_class_name(raw_class_name)
                     confidence = float(box.conf[0])
 
-                    # Filter only sacks with confidence threshold
-                    if class_name == "sack" and confidence > class_threshold("sack"):
+                    if class_name == "sack" and confidence > CONFIDENCE_THRESHOLD:
                         sack_count += 1
                         x1, y1, x2, y2 = box.xyxy[0].tolist()
 
@@ -502,121 +470,6 @@ async def detect_sacks_only(
         raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
 
 
-@app.post("/detect-boxes")
-async def detect_boxes_only(
-    file: UploadFile = File(...),
-    save_to_minio: bool = Form(False),
-    session_id: Optional[str] = Form(None)
-):
-    """Detect only sugar boxes in uploaded image"""
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
-
-    if model is None:
-        raise HTTPException(status_code=500, detail="AI model not available")
-
-    try:
-        # Read image
-        image_data = await file.read()
-        nparr = np.frombuffer(image_data, np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-        if image is None:
-            raise HTTPException(status_code=400, detail="Invalid image file")
-
-        # Run YOLO detection
-        results = model(image)
-
-        detections = []
-        box_count = 0
-
-        for result in results:
-            boxes = result.boxes
-            if boxes is not None:
-                for box in boxes:
-                    class_id = int(box.cls[0])
-                    raw_class_name = model.names[class_id]
-                    class_name = normalize_class_name(raw_class_name)
-                    confidence = float(box.conf[0])
-
-                    # Filter only boxes with confidence threshold (20% for boxes)
-                    if class_name == "box" and confidence > class_threshold("box"):
-                        box_count += 1
-                        x1, y1, x2, y2 = box.xyxy[0].tolist()
-
-                        detections.append(
-                            Detection(
-                                class_name=class_name,
-                                confidence=confidence,
-                                bbox=[x1, y1, x2, y2],
-                            )
-                        )
-
-        # Draw bounding boxes on original image
-        annotated_image = draw_bounding_boxes(image.copy(), detections)
-        base64_image = image_to_base64(annotated_image)
-
-        # Save to MinIO if requested
-        storage_info = {}
-        if save_to_minio and minio_client is not None:
-            try:
-                # Save original image
-                _, buffer_original = cv2.imencode(".jpg", image)
-                success_original, original_obj_name, original_url = minio_client.upload_file(
-                    file_data=buffer_original.tobytes(),
-                    original_filename=f"original_{file.filename}",
-                    prefix=f"original/{session_id}",
-                    content_type="image/jpeg"
-                )
-
-                # Save annotated image
-                _, buffer_annotated = cv2.imencode(".jpg", annotated_image)
-                success_annotated, annotated_obj_name, annotated_url = minio_client.upload_file(
-                    file_data=buffer_annotated.tobytes(),
-                    original_filename=f"annotated_{file.filename}",
-                    prefix=f"annotated/{session_id}",
-                    content_type="image/jpeg"
-                )
-
-                if success_original and success_annotated:
-                    storage_info = {
-                        "storage": {
-                            "original_stored": True,
-                            "annotated_stored": True,
-                            "original_object_name": original_obj_name,
-                            "annotated_object_name": annotated_obj_name,
-                            "original_url": original_url,
-                            "annotated_url": annotated_url,
-                            "session_id": session_id
-                        }
-                    }
-                    print(f"💾 Images saved to MinIO: {original_obj_name}, {annotated_obj_name}")
-                else:
-                    print("⚠️ Failed to save images to MinIO")
-
-            except Exception as e:
-                print(f"⚠️ Error saving to MinIO: {e}")
-
-        # Convert detections to serializable format
-        serializable_detections = [
-            {"class": det.class_name, "confidence": det.confidence, "bbox": det.bbox}
-            for det in detections
-        ]
-
-        return {
-            "status": "success",
-            "box_count": box_count,
-            "annotated_image": base64_image,
-            "detections": serializable_detections,
-            "session_id": session_id,
-            "save_to_minio": save_to_minio,
-            **storage_info
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
-
-
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -653,8 +506,7 @@ async def model_info():
         "model_type": "YOLO",
         "framework": "PyTorch",
         "confidence_threshold": CONFIDENCE_THRESHOLD,
-        "box_confidence_threshold": BOX_CONFIDENCE_THRESHOLD,
-        "note": f"Custom trained model. Confidence thresholds - General: {CONFIDENCE_THRESHOLD}, Box: {BOX_CONFIDENCE_THRESHOLD}",
+        "note": f"Custom trained model. Confidence threshold - Sack: {CONFIDENCE_THRESHOLD}",
     }
 
     if hasattr(model, 'names'):

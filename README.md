@@ -388,3 +388,6 @@ NestJS มี module `src/modules/ai-detector/` สำหรับ proxy request
 - ใน development (`NODE_ENV=development`) app จะพยายาม seed database ตอน startup
 - เอกสารเพิ่มเติมอยู่ใน `docs/`
 - Python AI service แยกอยู่ใน `python-ai-service/`
+
+
+tricker

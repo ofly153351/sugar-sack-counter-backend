@@ -45,6 +45,8 @@ app.add_middleware(
 # Load confidence thresholds from environment variables
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.45"))
 MODEL_PATH = os.getenv("MODEL_PATH", "bestStudent.pt")
+HOST = os.getenv("HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", "8082"))
 SACK_CLASS_NAME = os.getenv("SACK_CLASS_NAME", "sack").strip().lower()
 CLASS_ALIASES = {
     "sack": "sack",
@@ -611,4 +613,4 @@ async def minio_status():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8082, log_level="info")
+    uvicorn.run(app, host=HOST, port=PORT, log_level=os.getenv("LOG_LEVEL", "info"))

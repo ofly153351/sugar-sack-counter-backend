@@ -27,6 +27,24 @@ npm run start:dev
 
 > หมายเหตุ: `src/main.ts` ตั้ง global prefix เป็น `/api` ดังนั้นทุก endpoint ด้านล่างต้องเรียกด้วย prefix `/api`
 
+### Run backend and AI service together
+
+The production-style launcher starts the compiled NestJS backend and the Python AI service together:
+
+```bash
+cp env.template .env
+# Set database/JWT values in .env
+./start-production.sh
+```
+
+For later restarts, skip the build step:
+
+```bash
+./start-production.sh --skip-build
+```
+
+The launcher bind-mounts `.` into the backend container and `python-ai-service/` into the AI container. Inside Docker, the backend reaches the AI service at `http://ai-service:8082`.
+
 ## Environment Variables
 
 ตัวอย่างค่าที่ต้องมีใน `.env` ดูได้จาก `env.template`

@@ -1,4 +1,5 @@
 import { Injectable, HttpException, HttpStatus } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import axios from "axios";
 import { Readable } from "stream";
 
@@ -17,7 +18,16 @@ export interface DetectionResult {
 
 @Injectable()
 export class AiDetectorService {
-  private readonly aiServiceUrl = "http://localhost:8082/detect";
+  private readonly aiServiceUrl: string;
+
+  constructor(private readonly configService: ConfigService) {
+    const configuredUrl = this.configService.get<string>(
+      "AI_SERVICE_URL",
+      "http://localhost:8082",
+    );
+
+    this.aiServiceUrl = `${configuredUrl.replace(/\/$/, "")}/detect`;
+  }
 
   async detectPersons(file: Express.Multer.File): Promise<DetectionResult> {
     try {

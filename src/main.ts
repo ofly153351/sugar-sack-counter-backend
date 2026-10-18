@@ -34,10 +34,17 @@ async function bootstrap() {
   );
 
   // Enable CORS with credentials for cookie support
+  const configuredCorsOrigins = (process.env.CORS_ORIGIN || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
     origin:
       process.env.NODE_ENV === "production"
-        ? ["http://localhost:3000", "http://localhost:3001"]
+        ? configuredCorsOrigins.length > 0
+          ? configuredCorsOrigins
+          : ["http://localhost:3000", "http://localhost:3001"]
         : true, // Allow all origins in development
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],

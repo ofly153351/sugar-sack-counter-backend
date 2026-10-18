@@ -99,7 +99,8 @@ services:
       MINIO_USE_SSL: "false"
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-sugar-sacks}
       AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8082}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://sugar.phiraphat.site,http://localhost:3000,http://localhost:3001}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.phiraphat.site}
     ports:
       - "${BACKEND_HOST_PORT:-3001}:3001"
     volumes:

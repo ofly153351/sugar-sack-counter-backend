@@ -17,7 +17,7 @@ services:
       retries: 12
 
   minio:
-    image: quay.io/minio/minio:latest
+    image: docker.io/pgsty/silo:latest
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -28,13 +28,13 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "mc", "ready", "local"]
       interval: 5s
       timeout: 5s
       retries: 12
 
   minio-client:
-    image: quay.io/minio/mc:latest
+    image: docker.io/pgsty/mc:latest
     depends_on:
       minio:
         condition: service_healthy

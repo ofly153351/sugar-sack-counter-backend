@@ -17,7 +17,7 @@ services:
       retries: 12
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -34,7 +34,7 @@ services:
       retries: 12
 
   minio-client:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     depends_on:
       minio:
         condition: service_healthy

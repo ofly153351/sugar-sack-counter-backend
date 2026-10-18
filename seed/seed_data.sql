@@ -34,7 +34,7 @@ INSERT INTO vehicle_types (id, name, created_at, updated_at) VALUES
 ('880e8400-e29b-41d4-a716-446655440002', 'รถบรรทุก 4 ล้อ', NOW(), NOW()),
 ('880e8400-e29b-41d4-a716-446655440003', 'รถพ่วง', NOW(), NOW()),
 ('880e8400-e29b-41d4-a716-446655440004', 'รถกระบะ', NOW(), NOW())
-ON CONFLICT (name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Insert vehicles
 INSERT INTO vehicles (id, vehicle_code, license_plate, vehicle_type_id, max_load_weight_ton, driver_name, status, created_at, updated_at) VALUES
@@ -56,7 +56,7 @@ INSERT INTO sugar_types (id, name, description, created_at, updated_at) VALUES
 ('aa0e8400-e29b-41d4-a716-446655440001', 'น้ำตาลทรายแดง', 'น้ำตาลทรายแดงไม่ฟอกสี', NOW(), NOW()),
 ('aa0e8400-e29b-41d4-a716-446655440002', 'น้ำตาลทรายดิบ', 'น้ำตาลทรายดิบก่อนการฟอกสี', NOW(), NOW()),
 ('aa0e8400-e29b-41d4-a716-446655440003', 'น้ำตาลปี๊บ', 'น้ำตาลปี๊บสำหรับอุตสาหกรรม', NOW(), NOW())
-ON CONFLICT (name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Note: All passwords are hashed using bcrypt with salt rounds 12
 -- Default password for all users: "password123"

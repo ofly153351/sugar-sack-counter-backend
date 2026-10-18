@@ -33,11 +33,8 @@ allow_credentials = cors_origins != ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://sugartech.online",
-        "https://www.sugartech.online",
-    ],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

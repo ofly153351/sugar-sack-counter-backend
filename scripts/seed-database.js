@@ -10,6 +10,10 @@ async function seedDatabase() {
     process.env.DATABASE_URL ||
     "postgresql://postgres:password@localhost:5432/sugar_sack_counter";
 
+  const sslMode = (process.env.PGSSLMODE || "").toLowerCase();
+  const requiresSsl =
+    sslMode === "require" || /(?:^|[?&])sslmode=require(?:&|$)/i.test(databaseUrl);
+
   if (!databaseUrl) {
     console.error("❌ DATABASE_URL environment variable is not set");
     process.exit(1);
@@ -17,10 +21,7 @@ async function seedDatabase() {
 
   const client = new Client({
     connectionString: databaseUrl,
-    ssl:
-      process.env.NODE_ENV === "production"
-        ? { rejectUnauthorized: false }
-        : false,
+    ssl: requiresSsl ? { rejectUnauthorized: false } : false,
   });
 
   try {

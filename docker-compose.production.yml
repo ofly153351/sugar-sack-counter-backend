@@ -41,6 +41,7 @@ services:
 
   minio-client:
     image: myminio:minio
+    pull_policy: never
     depends_on:
       minio:
         condition: service_healthy

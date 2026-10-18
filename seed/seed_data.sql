@@ -9,14 +9,14 @@ ON CONFLICT (name) DO NOTHING;
 
 -- Insert default admin user (password: admin123)
 INSERT INTO users (id, role_id, username, password, email, created_at, updated_at) VALUES
-('660e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440000', 'admin', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/zYZCIHSJ2', 'admin@sugarsack.com', NOW(), NOW())
+('660e8400-e29b-41d4-a716-446655440000', (SELECT id FROM roles WHERE name = 'admin'), 'admin', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/zYZCIHSJ2', 'admin@sugarsack.com', NOW(), NOW())
 ON CONFLICT (username) DO NOTHING;
 
 -- Insert sample users (password: password123)
 INSERT INTO users (id, role_id, username, password, email, created_at, updated_at) VALUES
-('660e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', 'john_doe', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/zYZCIHSJ2', 'john.doe@example.com', NOW(), NOW()),
-('660e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440002', 'operator1', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/zYZCIHSJ2', 'operator1@example.com', NOW(), NOW()),
-('660e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440003', 'viewer1', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/zYZCIHSJ2', 'viewer1@example.com', NOW(), NOW())
+('660e8400-e29b-41d4-a716-446655440001', (SELECT id FROM roles WHERE name = 'user'), 'john_doe', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/zYZCIHSJ2', 'john.doe@example.com', NOW(), NOW()),
+('660e8400-e29b-41d4-a716-446655440002', (SELECT id FROM roles WHERE name = 'user'), 'operator1', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/zYZCIHSJ2', 'operator1@example.com', NOW(), NOW()),
+('660e8400-e29b-41d4-a716-446655440003', (SELECT id FROM roles WHERE name = 'user'), 'viewer1', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/zYZCIHSJ2', 'viewer1@example.com', NOW(), NOW())
 ON CONFLICT (username) DO NOTHING;
 
 -- Insert user profiles for the sample users

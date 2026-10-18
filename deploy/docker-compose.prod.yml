@@ -83,10 +83,10 @@ services:
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_BUCKET=sugar-sacks
       - AI_SERVICE_URL=${AI_SERVICE_URL:-http://ai-service:8000}
-      - PORT=3000
+      - PORT=3001
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     ports:
-      - "3000:3000"
+      - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,7 +98,7 @@ services:
       - uploads:/app/uploads
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

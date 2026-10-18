@@ -36,8 +36,10 @@ services:
       context: /opt/sugar-sack-counter/sugar-sack-counter-backend
       dockerfile: Dockerfile.prod
     container_name: backend
+    environment:
+      PORT: 3001
     ports:
-      - "3000:3000"
+      - "3001:3001"
     env_file:
       - /opt/sugar-sack-counter/.env
     depends_on:

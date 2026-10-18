@@ -51,11 +51,11 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       MINIO_BUCKET: sugar-sacks
-      PORT: 3000
+      PORT: 3001
       CORS_ORIGIN: "*"
       NODE_OPTIONS: "--max-old-space-size=512"
     ports:
-      - "3000:3000"
+      - "3001:3001"
     volumes:
       - ../:/app
       - backend_node_modules:/app/node_modules

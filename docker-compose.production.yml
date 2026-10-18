@@ -99,7 +99,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       MINIO_USE_SSL: "false"
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-sugar-sacks}
-      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8082}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:?AI_SERVICE_URL must be set in .env}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://sugar.phiraphat.site,http://localhost:3000,http://localhost:3001}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.phiraphat.site}
     ports:

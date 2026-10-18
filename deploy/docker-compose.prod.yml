@@ -82,7 +82,7 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_BUCKET=sugar-sacks
-      - AI_SERVICE_URL=${AI_SERVICE_URL:-http://ai-service:8000}
+      - AI_SERVICE_URL=${AI_SERVICE_URL:?AI_SERVICE_URL must be set in .env}
       - PORT=3001
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
     ports:

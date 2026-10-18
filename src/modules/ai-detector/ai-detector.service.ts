@@ -21,10 +21,11 @@ export class AiDetectorService {
   private readonly aiServiceUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    const configuredUrl = this.configService.get<string>(
-      "AI_SERVICE_URL",
-      "http://localhost:8082",
-    );
+    const configuredUrl = this.configService.get<string>("AI_SERVICE_URL");
+
+    if (!configuredUrl) {
+      throw new Error("AI_SERVICE_URL must be configured");
+    }
 
     this.aiServiceUrl = `${configuredUrl.replace(/\/$/, "")}/detect`;
   }

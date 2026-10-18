@@ -371,7 +371,7 @@ NestJS มี module `src/modules/ai-detector/` สำหรับ proxy request
 - Python AI service รับ field รูปภาพชื่อ `file`
 - response จะมีข้อมูล count, detections และ annotated image
 
-หมายเหตุ: ใน `src/modules/ai-detector/ai-detector.service.ts` URL ของ AI service ถูกกำหนดเป็น `http://localhost:8082/detect` หาก deploy จริงควรย้ายค่านี้ไปเป็น environment variable เพื่อเปลี่ยน host/port ได้โดยไม่ต้องแก้ code
+หมายเหตุ: URL ของ AI service ต้องกำหนดผ่าน `AI_SERVICE_URL` ใน `.env` เช่น `http://ai-service:8082` เมื่อรันด้วย Docker Compose
 
 ### MinIO
 

@@ -26,7 +26,7 @@ export class CreateSackRowByCountingSessionDto {
   weightType: string;
 
   @ApiPropertyOptional({
-    description: "AI detected count (optional)",
+    description: "Detected from image (optional)",
     example: 25,
   })
   @IsOptional()

@@ -11,7 +11,7 @@ export class UpdateBoxRowDto {
   rowNumber?: number;
 
   @ApiPropertyOptional({
-    description: "AI detected count",
+    description: "Detected from image",
     example: 25,
   })
   @IsOptional()

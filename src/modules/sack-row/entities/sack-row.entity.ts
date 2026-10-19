@@ -27,7 +27,7 @@ export class SackRow {
   weightType: string;
 
   @ApiPropertyOptional({
-    description: "AI detected count",
+    description: "Detected from image",
     example: 25,
   })
   aiCount?: number;

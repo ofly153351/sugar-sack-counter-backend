@@ -17,7 +17,7 @@ export class CreateBoxRowByCountingSessionDto {
   rowNumber: number;
 
   @ApiPropertyOptional({
-    description: "AI detected count (optional)",
+    description: "Detected from image (optional)",
     example: 25,
   })
   @IsOptional()

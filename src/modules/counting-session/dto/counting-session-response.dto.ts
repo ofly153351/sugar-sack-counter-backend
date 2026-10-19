@@ -149,7 +149,7 @@ export class SackRowResponseDto {
   weightType: string;
 
   @Expose()
-  @ApiProperty({ description: "AI detected count", required: false })
+  @ApiProperty({ description: "Detected from image", required: false })
   aiCount?: number;
 
   @Expose()
@@ -184,7 +184,7 @@ export class BoxRowResponseDto {
   rowNumber: number;
 
   @Expose()
-  @ApiProperty({ description: "AI detected count", required: false })
+  @ApiProperty({ description: "Detected from image", required: false })
   aiCount?: number;
 
   @Expose()

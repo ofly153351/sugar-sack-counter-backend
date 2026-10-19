@@ -23,7 +23,7 @@ export class UpdateSackRowDto extends PartialType(CreateSackRowDto) {
   weightType?: string;
 
   @ApiPropertyOptional({
-    description: "AI detected count",
+    description: "Detected from image",
     example: 25,
   })
   @IsOptional()

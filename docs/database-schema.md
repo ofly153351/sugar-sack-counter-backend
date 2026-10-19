@@ -84,7 +84,7 @@ Individual rows within a sack counting session
 - `session_id` (UUID): Foreign key to sack_counting_sessions
 - `row_number` (INTEGER): แถวที่
 - `weight_type` (VARCHAR): น้ำหนัก (25kg, 50kg)
-- `ai_count` (INTEGER): จำนวนที่ AI นับได้
+- `ai_count` (INTEGER): จำนวนที่ตรวจพบจากภาพ
 - `final_count` (INTEGER): จำนวนที่บันทึกจริง (หลังจากปรับเพิ่ม-ลด)
 - `image_path` (TEXT): path ของภาพที่อัปโหลด
 - `created_at`, `updated_at` (TIMESTAMP): Audit timestamps
@@ -107,7 +107,7 @@ Individual rows within a box counting session
 - `id` (UUID): Primary key
 - `session_id` (UUID): Foreign key to box_counting_sessions
 - `row_number` (INTEGER): แถวที่
-- `ai_count` (INTEGER): จำนวนที่ AI นับได้
+- `ai_count` (INTEGER): จำนวนที่ตรวจพบจากภาพ
 - `final_count` (INTEGER): จำนวนที่บันทึกจริง (หลังจากปรับเพิ่ม-ลด)
 - `image_path` (TEXT): path ของภาพที่อัปโหลด
 - `created_at`, `updated_at` (TIMESTAMP): Audit timestamps

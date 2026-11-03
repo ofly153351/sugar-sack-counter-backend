@@ -6,6 +6,7 @@ import { Readable } from "stream";
 export class MinioService {
   private readonly logger = new Logger(MinioService.name);
   private minioClient: Minio.Client;
+  private publicMinioClient: Minio.Client | null;
   private bucketName: string;
 
   private publicUrl: string | null;
@@ -28,6 +29,25 @@ export class MinioService {
       accessKey: accessKey,
       secretKey: secretKey,
     });
+
+    // Sign public URLs with the public hostname from the start. Replacing the
+    // host after signing invalidates SigV4 because `host` is a signed header.
+    if (this.publicUrl) {
+      const publicEndpoint = new URL(this.publicUrl);
+      this.publicMinioClient = new Minio.Client({
+        endPoint: publicEndpoint.hostname,
+        port: publicEndpoint.port
+          ? parseInt(publicEndpoint.port, 10)
+          : publicEndpoint.protocol === "https:"
+            ? 443
+            : 80,
+        useSSL: publicEndpoint.protocol === "https:",
+        accessKey,
+        secretKey,
+      });
+    } else {
+      this.publicMinioClient = null;
+    }
 
     this.logger.log(
       `MinIO client initialized for ${endpoint}:${port} (SSL: ${useSSL})`,
@@ -57,21 +77,12 @@ export class MinioService {
       // Remove leading slash if present
       const cleanObjectName = this.normalizeObjectName(objectName);
 
-      let url = await this.minioClient.presignedGetObject(
+      const signingClient = this.publicMinioClient || this.minioClient;
+      const url = await signingClient.presignedGetObject(
         this.bucketName,
         cleanObjectName,
         expirySeconds,
       );
-
-      // Replace internal host with public URL so external clients (e.g. LINE) can access it
-      if (this.publicUrl) {
-        const generated = new URL(url);
-        const pub = new URL(this.publicUrl);
-        generated.protocol = pub.protocol;
-        generated.hostname = pub.hostname;
-        generated.port = pub.port;
-        url = generated.toString();
-      }
 
       this.logger.debug(`Generated presigned URL for: ${cleanObjectName}`);
       return url;
